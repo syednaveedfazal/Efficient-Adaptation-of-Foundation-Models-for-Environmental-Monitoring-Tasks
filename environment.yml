@@ -1,0 +1,22 @@
+name: p29
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - gdal>=3.8          
+  - pip
+  - pip:
+    - torch==2.3.0
+    - torchvision
+    - pytorch-lightning>=2.0
+    - terratorch
+    - peft
+    - huggingface_hub
+    - torchgeo
+    - timm
+    - segmentation-models-pytorch
+    - wandb
+    - numpy
+    - matplotlib
+    - rasterio
