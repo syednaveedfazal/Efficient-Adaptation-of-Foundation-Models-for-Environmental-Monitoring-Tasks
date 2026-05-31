@@ -12,7 +12,7 @@ Comparing parameter-efficient fine-tuning (PEFT) strategies on the **Prithvi-EO-
 
 | Model | Label budget | Best val burn IoU |
 |---|---|---|
-| UNet (scratch) | 100% | 0.54 |
+| **UNet (scratch)** | 100% | 0.696 |
 | **Prithvi + LoRA r=8** | 1% | 0.39 |
 | **Prithvi + LoRA r=8** | 10% | 0.67 |
 | **Prithvi + LoRA r=8** | 100% | **0.81** |
