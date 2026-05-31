@@ -16,6 +16,7 @@ Usage:
 """
 
 import argparse
+import os
 from pathlib import Path
 
 
@@ -33,7 +34,7 @@ MODELS = {
 }
 
 
-def download_model(name: str, info: dict, output_dir: Path):
+def download_model(name: str, info: dict, output_dir: Path, cache_dir: Path = None):
     try:
         from huggingface_hub import snapshot_download
     except ImportError:
@@ -45,11 +46,18 @@ def download_model(name: str, info: dict, output_dir: Path):
     print(f"  Repo : {info['repo_id']}")
     print(f"  Dest : {dest}")
 
+    hf_cache = str(cache_dir) if cache_dir else None
+    if hf_cache:
+        print(f"  Cache: {hf_cache}")
+
+    # Downloads the snapshot. The 'token' parameter will evaluate to None 
+    # if HF_TOKEN is not in the environment, which is handled gracefully.
     path = snapshot_download(
         repo_id=info["repo_id"],
         repo_type=info["repo_type"],
         local_dir=str(dest),
-        # token=os.environ.get("HF_TOKEN"),  # uncomment if needed
+        cache_dir=hf_cache,
+        token=os.environ.get("HF_TOKEN"),
     )
     print(f"  ✓ Saved to {path}")
 
@@ -63,14 +71,25 @@ def main():
         default="all",
         help="Which model to download (default: all)",
     )
+    parser.add_argument(
+        "--cache_dir",
+        default=None,
+        help="Custom cache directory for downloads (defaults to output_dir/.cache to protect HPC home directory quota)",
+    )
     args = parser.parse_args()
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # If no custom cache directory is specified, default to a '.cache' subdirectory 
+    # within the designated model output folder. This keeps cache files out of your 
+    # home directory (~/.cache/huggingface) to avoid triggering cluster quota limits.
+    cache_dir = Path(args.cache_dir) if args.cache_dir else output_dir / ".cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+
     targets = MODELS if args.model == "all" else {args.model: MODELS[args.model]}
     for name, info in targets.items():
-        download_model(name, info, output_dir)
+        download_model(name, info, output_dir, cache_dir)
 
     print("\nAll done. Expected layout:")
     print("  models/pretrained/")
