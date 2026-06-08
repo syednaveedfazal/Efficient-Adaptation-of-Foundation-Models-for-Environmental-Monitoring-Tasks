@@ -1,0 +1,27 @@
+{
+  "experiment": {
+    "model_name": "prithvi_lora_r8",
+    "config": "configs/prithvi_lora_r8.yaml",
+    "split_json": "data/splits/seed_42/split_010pct.json",
+    "label_budget": 0.1,
+    "seed": 42,
+    "trainable_params": 903168,
+    "total_params": 295903168,
+    "pct_trainable_params": 1.905
+  },
+  "metrics": {
+    "loss": 0.3421,
+    "mean_iou": 0.7431,
+    "burn_iou": 0.6695,
+    "bg_iou": 0.9634,
+    "burn_precision": 0.8245,
+    "burn_recall": 0.7809,
+    "burn_dice": 0.8021,
+    "pixel_accuracy": 0.9412
+  },
+  "hardware": {
+    "gpu_name": "NVIDIA A100-SXM4-80GB",
+    "max_memory_allocated_mb": 4210.5,
+    "max_memory_reserved_mb": 6512.0
+  }
+}

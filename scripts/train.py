@@ -18,6 +18,8 @@ Usage:
 import argparse
 import sys
 import yaml
+import json
+import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor
 from pytorch_lightning.loggers import WandbLogger
@@ -128,6 +130,72 @@ def main():
 
     trainer.fit(model, datamodule=dm, ckpt_path=args.resume)
     print(f"\nDone. Checkpoints saved in: {ckpt_dir}")
+
+    # ------------------------------------------------------------------
+    # Evaluation and Export to results/metrics/
+    # ------------------------------------------------------------------
+    best_ckpt = trainer.checkpoint_callback.best_model_path
+    if best_ckpt and Path(best_ckpt).exists():
+        print(f"\nRunning final validation on best checkpoint: {best_ckpt}")
+        val_results = trainer.validate(model, datamodule=dm, ckpt_path=best_ckpt)
+    else:
+        print("\nNo best checkpoint found or saved. Running validation on final model state...")
+        val_results = trainer.validate(model, datamodule=dm)
+
+    if val_results:
+        metrics_dir = Path("results/metrics")
+        metrics_dir.mkdir(parents=True, exist_ok=True)
+
+        res = val_results[0]
+        # Clean prefix from keys for cleaner json (e.g. 'val/loss' -> 'loss')
+        clean_metrics = {k.replace("val/", ""): float(v) for k, v in res.items()}
+        
+        total_params = sum(p.numel() for p in model.parameters())
+        trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        
+        if args.split_json:
+            try:
+                with open(args.split_json) as f:
+                    split_data = json.load(f)
+                budget = split_data.get("budget", 1.0)
+                seed = split_data.get("seed", 42)
+            except Exception:
+                budget = 1.0
+                seed = cfg.get("seed", 42)
+        else:
+            budget = 1.0
+            seed = cfg.get("seed", 42)
+            
+        # Collect GPU statistics
+        gpu_stats = {}
+        if torch.cuda.is_available():
+            gpu_stats["gpu_name"] = torch.cuda.get_device_name(0)
+            gpu_stats["max_memory_allocated_mb"] = round(torch.cuda.max_memory_allocated(0) / (1024 ** 2), 2)
+            gpu_stats["max_memory_reserved_mb"] = round(torch.cuda.max_memory_reserved(0) / (1024 ** 2), 2)
+        else:
+            gpu_stats["gpu_name"] = "CPU / No GPU"
+            gpu_stats["max_memory_allocated_mb"] = 0.0
+            gpu_stats["max_memory_reserved_mb"] = 0.0
+
+        export_data = {
+            "experiment": {
+                "model_name": model_name,
+                "config": args.config,
+                "split_json": args.split_json,
+                "label_budget": budget,
+                "seed": seed,
+                "trainable_params": trainable_params,
+                "total_params": total_params,
+                "pct_trainable_params": round(100.0 * trainable_params / total_params, 4) if total_params > 0 else 0.0
+            },
+            "metrics": clean_metrics,
+            "hardware": gpu_stats
+        }
+        
+        out_path = metrics_dir / f"{run_name}.json"
+        with open(out_path, "w") as f:
+            json.dump(export_data, f, indent=2)
+        print(f"\n[Metrics] Successfully exported final metrics to: {out_path}\n")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,27 @@
+{
+  "experiment": {
+    "model_name": "unet",
+    "config": "configs/unet_baseline.yaml",
+    "split_json": "data/splits/seed_42/split_100pct.json",
+    "label_budget": 1.0,
+    "seed": 42,
+    "trainable_params": 13393154,
+    "total_params": 13393154,
+    "pct_trainable_params": 100.0
+  },
+  "metrics": {
+    "loss": 0.1530899554491043,
+    "mean_iou": 0.840507447719574,
+    "burn_iou": 0.7073363661766052,
+    "bg_iou": 0.9736783504486084,
+    "burn_precision": 0.7863860130310059,
+    "burn_recall": 0.8720674514770508,
+    "burn_dice": 0.8160709738731384,
+    "pixel_accuracy": 0.9763455390930176
+  },
+  "hardware": {
+    "gpu_name": "NVIDIA A40",
+    "max_memory_allocated_mb": 5821.22,
+    "max_memory_reserved_mb": 7612.0
+  }
+}

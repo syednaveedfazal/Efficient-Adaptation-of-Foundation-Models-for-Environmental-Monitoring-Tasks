@@ -46,10 +46,14 @@ class SegmentationModule(pl.LightningModule):
         metrics = compute_metrics(logits, masks, self.cfg["model"]["params"]["num_classes"])
 
         on_step = (stage == "train")
-        self.log(f"{stage}/loss",     loss,                on_step=on_step, on_epoch=True, prog_bar=True)
-        self.log(f"{stage}/mean_iou", metrics["mean_iou"], on_step=False,   on_epoch=True, prog_bar=True)
-        self.log(f"{stage}/burn_iou", metrics["burn_iou"], on_step=False,   on_epoch=True, prog_bar=True)
-        self.log(f"{stage}/bg_iou",   metrics["bg_iou"],   on_step=False,   on_epoch=True)
+        self.log(f"{stage}/loss",           loss,                      on_step=on_step, on_epoch=True, prog_bar=True)
+        self.log(f"{stage}/mean_iou",       metrics["mean_iou"],       on_step=False,   on_epoch=True, prog_bar=True)
+        self.log(f"{stage}/burn_iou",       metrics["burn_iou"],       on_step=False,   on_epoch=True, prog_bar=True)
+        self.log(f"{stage}/bg_iou",         metrics["bg_iou"],         on_step=False,   on_epoch=True)
+        self.log(f"{stage}/burn_precision", metrics["burn_precision"], on_step=False,   on_epoch=True)
+        self.log(f"{stage}/burn_recall",    metrics["burn_recall"],    on_step=False,   on_epoch=True)
+        self.log(f"{stage}/burn_dice",      metrics["burn_dice"],      on_step=False,   on_epoch=True)
+        self.log(f"{stage}/pixel_accuracy", metrics["pixel_accuracy"], on_step=False,   on_epoch=True)
         return loss
 
     def training_step(self, batch, _):

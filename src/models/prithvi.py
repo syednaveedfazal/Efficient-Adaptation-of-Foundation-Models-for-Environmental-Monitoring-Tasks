@@ -1,19 +1,3 @@
-"""
-src/models/prithvi.py — Prithvi-EO-2.0-300M backbone with LoRA r=8 for segmentation.
-
-Architecture:
-  PrithviViT encoder (295M frozen) + PEFT LoRA adapters (~900K trainable)
-  → SegDecoder (4× conv+upsample, ~4.5M trainable)
-  → (B, 2, 512, 512) logits
-
-Usage (via registry):
-  model.name: prithvi_lora_r8
-  model.params:
-    weights_path: models/pretrained/prithvi/Prithvi_EO_V2_300M.pt
-    num_classes:  2
-    lora_rank:    8
-    lora_alpha:   8
-"""
 
 import sys
 import importlib.util
@@ -26,7 +10,6 @@ from peft import LoraConfig, inject_adapter_in_model
 
 
 def _load_prithvi_mae_module():
-    """Import PrithviMAE from the local prithvi_mae.py without polluting sys.modules."""
     mae_path = Path(__file__).resolve().parents[2] / "models" / "pretrained" / "prithvi" / "prithvi_mae.py"
     if not mae_path.exists():
         raise FileNotFoundError(
