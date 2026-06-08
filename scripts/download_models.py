@@ -34,6 +34,35 @@ MODELS = {
 }
 
 
+def _is_lfs_pointer(path: Path) -> bool:
+    if not path.exists() or path.stat().st_size > 1024:
+        return False
+    with path.open() as f:
+        first_line = f.readline().strip()
+    return first_line == "version https://git-lfs.github.com/spec/v1"
+
+
+def _validate_download(name: str, dest: Path):
+    if name == "dinov2":
+        config_path = dest / "config.json"
+        if not config_path.exists():
+            raise SystemExit(
+                f"[{name}] Download incomplete: missing {config_path}. "
+                "Re-run the script with network access."
+            )
+
+        weights = dest / "model.safetensors"
+        if not weights.exists():
+            weights = dest / "pytorch_model.bin"
+        if not weights.exists():
+            raise SystemExit(f"[{name}] Download incomplete: no weight file found in {dest}.")
+        if _is_lfs_pointer(weights):
+            raise SystemExit(
+                f"[{name}] Download produced a Git LFS pointer at {weights} instead of real weights. "
+                "Remove the stub files in models/pretrained/dinov2 and re-run this script."
+            )
+
+
 def download_model(name: str, info: dict, output_dir: Path, cache_dir: Path = None):
     try:
         from huggingface_hub import snapshot_download
@@ -59,6 +88,7 @@ def download_model(name: str, info: dict, output_dir: Path, cache_dir: Path = No
         cache_dir=hf_cache,
         token=os.environ.get("HF_TOKEN"),
     )
+    _validate_download(name, dest)
     print(f"  ✓ Saved to {path}")
 
 

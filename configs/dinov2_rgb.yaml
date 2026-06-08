@@ -1,0 +1,39 @@
+seed: 42
+use_wandb: false
+wandb_project: burn-scar
+
+data:
+  raw_dir:       data/raw/hls_burn_scars
+  stats_path:    data/processed/stats.json
+  val_json:      data/splits/val_scenes.json
+  test_json:     data/splits/val_scenes.json
+  test_split:    validation
+  batch_size:    4
+  num_workers:   4
+  normalization: none
+
+model:
+  name: dinov2_rgb
+  params:
+    pretrained_model_name_or_path: models/pretrained/dinov2
+    num_classes: 2
+    rgb_indices: [2, 1, 0]         # HLS order is B, G, R, NIR, SW1, SW2
+    raw_scale: 10000.0
+    backbone_input_size: 518
+    train_mode: full_finetune
+    decoder_channels: [384, 192, 96, 48]
+
+loss:
+  ce_weight:     0.5
+  dice_weight:   0.5
+  class_weights: [1.0, 8.0]
+
+optimizer:
+  lr:           1.0e-4
+  weight_decay: 1.0e-4
+
+trainer:
+  max_epochs:     100
+  patience:       15
+  checkpoint_dir: results/checkpoints/
+  precision:      16-mixed

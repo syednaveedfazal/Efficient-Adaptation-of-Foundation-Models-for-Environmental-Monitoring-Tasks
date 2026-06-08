@@ -15,8 +15,11 @@ dependencies:
     - huggingface_hub
     - torchgeo
     - timm
+    - transformers
+    - safetensors
     - segmentation-models-pytorch
     - wandb
     - numpy
     - matplotlib
     - rasterio
+    - einops

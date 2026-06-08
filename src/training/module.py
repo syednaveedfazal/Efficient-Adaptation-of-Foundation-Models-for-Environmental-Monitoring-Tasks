@@ -58,6 +58,9 @@ class SegmentationModule(pl.LightningModule):
     def validation_step(self, batch, _):
         self._shared_step(batch, "val")
 
+    def test_step(self, batch, _):
+        self._shared_step(batch, "test")
+
     def configure_optimizers(self):
         opt = self.cfg["optimizer"]
         optimizer = torch.optim.AdamW(

@@ -11,8 +11,9 @@ Usage:
         --split_json data/splits/seed_42/split_010pct.json
 
     # Teammates — just swap the config, nothing else changes
-    python scripts/train.py --config configs/prithvi_lora.yaml
-    python scripts/train.py --config configs/dinov2_finetune.yaml
+    python scripts/train.py --config configs/prithvi_lora_r8.yaml
+    python scripts/train.py --config configs/dinov2_rgb_linear_probe.yaml
+    python scripts/train.py --config configs/dinov2_rgb_full_finetune.yaml
 """
 
 import argparse
@@ -45,10 +46,19 @@ def main():
                         help="Path to a Lightning checkpoint to resume training from. "
                              "Restores model weights, optimizer, LR scheduler, and "
                              "early-stopping counter exactly where training left off.")
+    parser.add_argument("--test_only",
+                        action="store_true",
+                        help="Skip training and run trainer.test() using --resume.")
+    parser.add_argument("--skip_test",
+                        action="store_true",
+                        help="Train/validate only; do not run test after fit.")
     args = parser.parse_args()
 
     with open(args.config) as f:
         cfg = yaml.safe_load(f)
+
+    if args.test_only and not args.resume:
+        raise SystemExit("--test_only requires --resume <checkpoint_path>.")
 
     pl.seed_everything(cfg.get("seed", 42), workers=True)
 
@@ -58,7 +68,7 @@ def main():
         p = Path(args.split_json)
         run_name = f"{model_name}_{p.parent.name}_{p.stem}"   # e.g. unet_seed_42_split_010pct
     else:
-        run_name = f"{model_name}_seed_42_split_100pct"
+        run_name = f"{model_name}_seed_{cfg.get('seed', 42)}_split_100pct"
 
     # ------------------------------------------------------------------
     # Data
@@ -68,8 +78,11 @@ def main():
         stats_path  = cfg["data"]["stats_path"],
         split_json  = args.split_json,
         val_json    = cfg["data"].get("val_json"),
+        test_json   = cfg["data"].get("test_json"),
+        test_split  = cfg["data"].get("test_split", "validation"),
         batch_size  = cfg["data"]["batch_size"],
         num_workers = cfg["data"]["num_workers"],
+        normalization = cfg["data"].get("normalization", "zscore"),
     )
 
     # ------------------------------------------------------------------
@@ -124,10 +137,20 @@ def main():
     print(f"  Model:  {model_name}")
     print(f"  Run:    {run_name}")
     print(f"  Split:  {args.split_json or 'ALL (100%)'}")
+    print(f"  Mode:   {'test-only' if args.test_only else 'train/val/test'}")
     print(f"{'='*60}\n")
+
+    if args.test_only:
+        test_results = trainer.test(model, datamodule=dm, ckpt_path=args.resume)
+        print(f"\nTest metrics: {test_results}")
+        return
 
     trainer.fit(model, datamodule=dm, ckpt_path=args.resume)
     print(f"\nDone. Checkpoints saved in: {ckpt_dir}")
+
+    if not args.skip_test:
+        test_results = trainer.test(model, datamodule=dm, ckpt_path="best")
+        print(f"\nTest metrics: {test_results}")
 
 
 if __name__ == "__main__":

@@ -26,7 +26,8 @@ project/
 │
 ├── configs/                    # One YAML file per model/strategy
 │   ├── unet_baseline.yaml      # UNet trained from scratch
-│   └── prithvi_lora_r8.yaml   # Prithvi + LoRA r=8 (primary method)
+│   ├── prithvi_lora_r8.yaml    # Prithvi + LoRA r=8 (primary method)
+│   └── dinov2_rgb.yaml         # DINOv2-Base on RGB-only HLS input
 │
 ├── data/
 │   ├── raw/
@@ -218,9 +219,17 @@ python scripts/train.py --config configs/unet_baseline.yaml
 
 # Prithvi + LoRA r=8
 python scripts/train.py --config configs/prithvi_lora_r8.yaml
+
+# DINOv2-Base on RGB channels only, linear probing
+python scripts/train.py --config configs/dinov2_rgb_linear_probe.yaml
+
+# DINOv2-Base on RGB channels only, full fine-tuning
+python scripts/train.py --config configs/dinov2_rgb_full_finetune.yaml
 ```
 
 To add a new model: create `src/models/your_model.py`, register it in `src/models/registry.py`, write a config YAML. Nothing else changes.
+
+`scripts/train.py` now runs train, validation, and test in one command. If your dataset has no separate held-out test split configured, the test stage defaults to the validation split.
 
 ---
 

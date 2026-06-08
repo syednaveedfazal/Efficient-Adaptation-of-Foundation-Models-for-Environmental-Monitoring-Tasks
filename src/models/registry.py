@@ -10,10 +10,12 @@ No changes needed to train.py, module.py, or any shared code.
 """
 
 from src.models.unet import UNet
+from src.models.dinov2 import Dinov2Segmentor
 from src.models.prithvi import PrithviSegmentor
 
 MODEL_REGISTRY: dict = {
     "unet":            UNet,
+    "dinov2_rgb":      Dinov2Segmentor,
     "prithvi_lora_r8": PrithviSegmentor,
 }
 
