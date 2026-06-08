@@ -1,5 +1,5 @@
 """
-src/models/prithvi.py — Prithvi-EO-2.0-300M backbone with LoRA r=8 for segmentation.
+src/models/prithvi.py — Prithvi-EO-2.0-300M backbone with configurable LoRA for segmentation.
 
 Architecture:
   PrithviViT encoder (295M frozen) + PEFT LoRA adapters (~900K trainable)
@@ -8,11 +8,12 @@ Architecture:
 
 Usage (via registry):
   model.name: prithvi_lora_r8
+  model.name: prithvi_lora_r16
   model.params:
     weights_path: models/pretrained/prithvi/Prithvi_EO_V2_300M.pt
     num_classes:  2
-    lora_rank:    8
-    lora_alpha:   8
+    lora_rank:    8     # or 16, ...
+    lora_alpha:   8     # usually keep alpha == rank
 """
 
 import sys
@@ -72,7 +73,7 @@ class SegDecoder(nn.Module):
 
 class PrithviSegmentor(nn.Module):
     """
-    Prithvi-EO-2.0-300M backbone with LoRA r=8 + convolutional segmentation decoder.
+    Prithvi-EO-2.0-300M backbone with configurable LoRA + segmentation decoder.
 
     Args:
         weights_path: Path to Prithvi_EO_V2_300M.pt

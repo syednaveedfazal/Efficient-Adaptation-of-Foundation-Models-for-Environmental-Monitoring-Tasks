@@ -11,7 +11,8 @@ Usage:
         --split_json data/splits/seed_42/split_010pct.json
 
     # Teammates — just swap the config, nothing else changes
-    python scripts/train.py --config configs/prithvi_lora.yaml
+    python scripts/train.py --config configs/prithvi_lora_r8.yaml
+    python scripts/train.py --config configs/prithvi_lora_r16.yaml
     python scripts/train.py --config configs/dinov2_finetune.yaml
 """
 

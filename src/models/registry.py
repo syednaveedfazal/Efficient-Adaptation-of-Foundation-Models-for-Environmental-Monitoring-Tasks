@@ -9,13 +9,29 @@ To add a new model, teammates only need to:
 No changes needed to train.py, module.py, or any shared code.
 """
 
+import re
+
 from src.models.unet import UNet
 from src.models.prithvi import PrithviSegmentor
 
 MODEL_REGISTRY: dict = {
-    "unet":            UNet,
-    "prithvi_lora_r8": PrithviSegmentor,
+    "unet":         UNet,
+    "prithvi_lora": PrithviSegmentor,
 }
+
+
+def _resolve_model_class(name: str):
+    if name in MODEL_REGISTRY:
+        return MODEL_REGISTRY[name]
+
+    if re.fullmatch(r"prithvi_lora_r\d+", name):
+        return PrithviSegmentor
+
+    registered = list(MODEL_REGISTRY.keys()) + ["prithvi_lora_r<rank>"]
+    raise KeyError(
+        f"Model '{name}' not found in registry. "
+        f"Registered models: {registered}"
+    )
 
 
 def build_model(cfg: dict):
@@ -34,11 +50,5 @@ def build_model(cfg: dict):
         KeyError if model.name is not in the registry.
     """
     name = cfg["name"]
-    if name not in MODEL_REGISTRY:
-        registered = list(MODEL_REGISTRY.keys())
-        raise KeyError(
-            f"Model '{name}' not found in registry. "
-            f"Registered models: {registered}"
-        )
-    model_cls = MODEL_REGISTRY[name]
+    model_cls = _resolve_model_class(name)
     return model_cls(**cfg["params"])
