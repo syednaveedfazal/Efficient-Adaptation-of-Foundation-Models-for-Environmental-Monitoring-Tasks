@@ -27,15 +27,20 @@ from peft import LoraConfig, inject_adapter_in_model
 
 
 def _load_prithvi_mae_module():
-    """Import PrithviMAE from the local prithvi_mae.py without polluting sys.modules."""
-    mae_path = Path(__file__).resolve().parents[2] / "models" / "pretrained" / "prithvi" / "prithvi_mae.py"
+    mae_path = (
+        Path(__file__).resolve().parents[2]
+        / "models"
+        / "pretrained"
+        / "prithvi"
+        / "prithvi_mae.py"
+    )
     if not mae_path.exists():
         raise FileNotFoundError(
             f"prithvi_mae.py not found at {mae_path}. "
             "Run: python scripts/download_models.py --model prithvi"
         )
     spec = importlib.util.spec_from_file_location("prithvi_mae", mae_path)
-    mod  = importlib.util.module_from_spec(spec)
+    mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
 
@@ -60,10 +65,10 @@ class SegDecoder(nn.Module):
             )
 
         self.stages = nn.Sequential(
-            _block(in_channels, 256),   # 32  → 64
-            _block(256, 128),           # 64  → 128
-            _block(128, 64),            # 128 → 256
-            _block(64,  32),            # 256 → 512
+            _block(in_channels, 256),  # 32  → 64
+            _block(256, 128),  # 64  → 128
+            _block(128, 64),  # 128 → 256
+            _block(64, 32),  # 256 → 512
         )
         self.head = nn.Conv2d(32, num_classes, kernel_size=1)
 
@@ -85,29 +90,29 @@ class PrithviSegmentor(nn.Module):
     def __init__(
         self,
         weights_path: str,
-        num_classes:  int   = 2,
-        lora_rank:    int   = 8,
-        lora_alpha:   int   = 8,
+        num_classes: int = 2,
+        lora_rank: int = 8,
+        lora_alpha: int = 8,
     ):
         super().__init__()
 
         # ── 1. Load Prithvi backbone ──────────────────────────────────────
         prithvi_mod = _load_prithvi_mae_module()
-        PrithviMAE  = prithvi_mod.PrithviMAE
+        PrithviMAE = prithvi_mod.PrithviMAE
 
         # Instantiate for T=1 static task, 512×512 input
         full_model = PrithviMAE(
-            img_size          = 512,
-            num_frames        = 1,
-            patch_size        = (1, 16, 16),
-            in_chans          = 6,
-            embed_dim         = 1024,
-            depth             = 24,
-            num_heads         = 16,
-            decoder_embed_dim = 512,
-            decoder_depth     = 8,
-            decoder_num_heads = 16,
-            mlp_ratio         = 4.0,
+            img_size=512,
+            num_frames=1,
+            patch_size=(1, 16, 16),
+            in_chans=6,
+            embed_dim=1024,
+            depth=24,
+            num_heads=16,
+            decoder_embed_dim=512,
+            decoder_depth=8,
+            decoder_num_heads=16,
+            mlp_ratio=4.0,
         )
 
         ckpt = torch.load(weights_path, map_location="cpu", weights_only=False)
@@ -120,18 +125,20 @@ class PrithviSegmentor(nn.Module):
 
         missing, unexpected = full_model.load_state_dict(state_dict, strict=False)
         print(f"[Prithvi] Loaded {weights_path}")
-        print(f"          Missing keys  : {len(missing)}  (pos_embed sincos buffers excluded — expected)")
+        print(
+            f"          Missing keys  : {len(missing)}  (pos_embed sincos buffers excluded — expected)"
+        )
         print(f"          Unexpected keys: {len(unexpected)}")
 
-        self.encoder = full_model.encoder   # PrithviViT — we only need the encoder
+        self.encoder = full_model.encoder  # PrithviViT — we only need the encoder
 
         # ── 2. Inject LoRA adapters in-place ─────────────────────────────
         lora_cfg = LoraConfig(
-            r              = lora_rank,
-            lora_alpha     = lora_alpha,
-            target_modules = ["attn.qkv", "attn.proj", "mlp.fc1", "mlp.fc2"],
-            bias           = "none",
-            lora_dropout   = 0.0,
+            r=lora_rank,
+            lora_alpha=lora_alpha,
+            target_modules=["attn.qkv", "attn.proj", "mlp.fc1", "mlp.fc2"],
+            bias="none",
+            lora_dropout=0.0,
         )
         inject_adapter_in_model(lora_cfg, self.encoder)
 
@@ -146,10 +153,12 @@ class PrithviSegmentor(nn.Module):
         self._print_param_summary()
 
     def _print_param_summary(self):
-        total     = sum(p.numel() for p in self.parameters())
+        total = sum(p.numel() for p in self.parameters())
         trainable = sum(p.numel() for p in self.parameters() if p.requires_grad)
-        print(f"[Prithvi] Parameters — total: {total:,}  |  trainable: {trainable:,} "
-              f"({100 * trainable / total:.2f}%)")
+        print(
+            f"[Prithvi] Parameters — total: {total:,}  |  trainable: {trainable:,} "
+            f"({100 * trainable / total:.2f}%)"
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
