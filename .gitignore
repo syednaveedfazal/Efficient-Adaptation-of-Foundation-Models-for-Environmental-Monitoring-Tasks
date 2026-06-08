@@ -1,18 +1,40 @@
+# Data and downloaded model assets
 data/
 models/
-*.pth
-*.ckpt
-*.pt
 *.tif
 *.tiff
 
-# Logs and cache
-logs/
+# Training artifacts
+lightning_logs/
 wandb/
+results/checkpoints/
+results/metrics/
+results/plots/
+*.ckpt
+*.pt
+*.pth
+
+# Logs
+logs/
+*.log
+*.out
+*.err
+
+# Python cache and build artifacts
 __pycache__/
 *.pyc
-.ipynb_checkpoints/
+*.pyo
+*.pyd
 *.egg-info/
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
 
-# Environment
+# Virtual environments and local env files
 .env
+.venv/
+venv/
+env/
+
+# OS/editor noise
+.DS_Store
