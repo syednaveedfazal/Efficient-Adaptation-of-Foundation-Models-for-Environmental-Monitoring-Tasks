@@ -10,6 +10,27 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
+
+def _model_style(model_name: str):
+    if model_name == "unet":
+        return "#d95f02", "o", "UNet (Baseline)"
+
+    if model_name == "dinov2_finetune":
+        return "#2ca02c", "^", "DINOv2 (Fine-tuned)"
+
+    if model_name == "prithvi_lora_r8":
+        return "#1f77b4", "s", "Prithvi-EO-2.0 + LoRA r=8"
+
+    if model_name == "prithvi_lora_r16":
+        return "#0d3b66", "D", "Prithvi-EO-2.0 + LoRA r=16"
+
+    if model_name.startswith("prithvi_lora_r"):
+        rank = model_name.removeprefix("prithvi_lora_r")
+        return "#4c78a8", "P", f"Prithvi-EO-2.0 + LoRA r={rank}"
+
+    return "#7f7f7f", "x", model_name
+
+
 def main():
     metrics_dir = Path("results/metrics")
     plots_dir = Path("results/plots")
@@ -77,10 +98,6 @@ def main():
     # Plot A: Burn IoU vs Label Budget
     plt.figure(figsize=(fig_width, fig_height), dpi=300)
     
-    colors = {"unet": "#d95f02", "prithvi_lora_r8": "#1f77b4", "dinov2_finetune": "#2ca02c"}
-    markers = {"unet": "o", "prithvi_lora_r8": "s", "dinov2_finetune": "^"}
-    names = {"unet": "UNet (Baseline)", "prithvi_lora_r8": "Prithvi-EO-2.0 + LoRA r=8", "dinov2_finetune": "DINOv2 (Fine-tuned)"}
-    
     for model, budgets_dict in data_dict.items():
         sorted_budgets = sorted(budgets_dict.keys())
         
@@ -92,9 +109,7 @@ def main():
             means_iou.append(np.mean(ious))
             stds_iou.append(np.std(ious) if len(ious) > 1 else 0.0)
             
-        color = colors.get(model, "#7f7f7f")
-        marker = markers.get(model, "x")
-        name = names.get(model, model)
+        color, marker, name = _model_style(model)
         
         # Convert budgets to percentages for plotting x-axis
         x_vals = [b * 100.0 for b in sorted_budgets]
@@ -143,9 +158,7 @@ def main():
             means_dice.append(np.mean(dices))
             stds_dice.append(np.std(dices) if len(dices) > 1 else 0.0)
             
-        color = colors.get(model, "#7f7f7f")
-        marker = markers.get(model, "x")
-        name = names.get(model, model)
+        color, marker, name = _model_style(model)
         
         x_vals = [b * 100.0 for b in sorted_budgets]
         
@@ -189,8 +202,7 @@ def main():
             mean_iou = np.mean(ious)
             std_iou = np.std(ious) if len(ious) > 1 else 0.0
             
-            color = colors.get(model, "#7f7f7f")
-            name = names.get(model, model)
+            color, _, name = _model_style(model)
             
             plt.errorbar(
                 pct_trainable, mean_iou, yerr=std_iou, 
