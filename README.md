@@ -4,7 +4,7 @@ Comparing parameter-efficient fine-tuning (PEFT) strategies on the **Prithvi-EO-
 
 **Task:** Binary semantic segmentation (burned / not burned) on 512×512 HLS satellite chips  
 **Dataset:** ~800 labelled scenes from NASA IMPACT (6 spectral bands, 30 m/pixel)  
-**Primary method:** LoRA r=8 — only 1.9% of parameters trained, matches full fine-tuning performance
+**Primary method:** Prithvi + LoRA (currently benchmarked with r=8; repo now supports r=16 as well)
 
 ---
 
@@ -26,7 +26,8 @@ project/
 │
 ├── configs/                    # One YAML file per model/strategy
 │   ├── unet_baseline.yaml      # UNet trained from scratch
-│   └── prithvi_lora_r8.yaml   # Prithvi + LoRA r=8 (primary method)
+│   ├── prithvi_lora_r8.yaml   # Prithvi + LoRA r=8
+│   └── prithvi_lora_r16.yaml  # Prithvi + LoRA r=16
 │
 ├── data/
 │   ├── raw/
@@ -170,16 +171,25 @@ You can now edit code with full IntelliSense, run terminals (`Ctrl+\`` `), and o
 
 ### Option A — Submit to the GPU cluster (recommended)
 
-Edit `scripts/ActivateGPU.sh` — change the `SPLIT` variable to choose your label budget:
+Edit `scripts/ActivateGPU.sh` — change `CONFIG` for the model variant and `SPLIT` for the label budget:
 
 ```bash
+# LoRA rank
+CONFIG="configs/prithvi_lora_r8.yaml"
+CONFIG="configs/prithvi_lora_r16.yaml"
+
 # 10% of training data, seed 42
 SPLIT="data/splits/seed_42/split_010pct.json"
 
 # Different seed, same budget
 SPLIT="data/splits/seed_123/split_010pct.json"
 
-# 100% of training data (omit the --split_json line)
+# 100% of training data
+SPLIT=""
+
+# Fresh run vs resume
+RESUME=""
+RESUME="results/checkpoints/<run_name>/epoch=<N>-val/burn_iou=<X>.ckpt"
 ```
 
 Then submit:
@@ -204,6 +214,9 @@ tail -f logs/job_<ID>.out
 conda activate p29
 python scripts/train.py --config configs/prithvi_lora_r8.yaml \
     --split_json data/splits/seed_42/split_001pct.json
+
+python scripts/train.py --config configs/prithvi_lora_r16.yaml \
+    --split_json data/splits/seed_42/split_001pct.json
 ```
 
 ---
@@ -218,6 +231,9 @@ python scripts/train.py --config configs/unet_baseline.yaml
 
 # Prithvi + LoRA r=8
 python scripts/train.py --config configs/prithvi_lora_r8.yaml
+
+# Prithvi + LoRA r=16
+python scripts/train.py --config configs/prithvi_lora_r16.yaml
 ```
 
 To add a new model: create `src/models/your_model.py`, register it in `src/models/registry.py`, write a config YAML. Nothing else changes.
