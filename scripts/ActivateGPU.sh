@@ -30,20 +30,31 @@ echo "=========================================================="
 # --- 3. Execute training ---
 echo "Starting Python execution..."
 
-# Plug-and-play: change SPLIT to switch seed/budget, then sbatch this file.
+# Plug-and-play: change CONFIG/SPLIT/RESUME to switch model, seed, budget, and restart point.
 #   data/splits/seed_42/split_001pct.json   (1%,   ~5 chips)
 #   data/splits/seed_42/split_010pct.json   (10%, ~54 chips)
 #   data/splits/seed_42/split_050pct.json   (50%)
 #   data/splits/seed_123/split_010pct.json  (10%, seed 123)
 #   data/splits/seed_456/split_010pct.json  (10%, seed 456)
-# For 100% budget: comment out the --split_json line below
+#   configs/prithvi_lora_r8.yaml            (LoRA rank 8)
+#   configs/prithvi_lora_r16.yaml           (LoRA rank 16)
+# For 100% budget: leave SPLIT empty
+# For a fresh run: leave RESUME empty
+CONFIG="configs/prithvi_lora_r8.yaml"
 SPLIT="data/splits/seed_42/split_010pct.json"
-RESUME="results/checkpoints/prithvi_lora_r8_seed_42_split_010pct/epoch=62-val/burn_iou=0.6643.ckpt"
+RESUME=""
 
-python -u scripts/train.py \
-    --config     configs/prithvi_lora_r8.yaml \
-    --split_json "$SPLIT" \
-    --resume     "$RESUME"
+CMD=(python -u scripts/train.py --config "$CONFIG")
+
+if [[ -n "$SPLIT" ]]; then
+    CMD+=(--split_json "$SPLIT")
+fi
+
+if [[ -n "$RESUME" ]]; then
+    CMD+=(--resume "$RESUME")
+fi
+
+"${CMD[@]}"
 
 echo "=========================================================="
 echo "Job finished at:    $(date)"
