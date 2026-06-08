@@ -1,6 +1,5 @@
 # Data and downloaded model assets
 data/
-models/
 *.tif
 *.tiff
 
