@@ -3,4 +3,5 @@ rasterio
 numpy
 einops
 timm
+transformers<5
 peft
