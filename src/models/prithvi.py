@@ -16,12 +16,17 @@ Usage (via registry):
     lora_alpha:   8     # usually keep alpha == rank
 """
 
+import os
 import sys
 import importlib.util
 from pathlib import Path
 
 import torch
 import torch.nn as nn
+
+# This project uses PEFT with a pure PyTorch path. Disabling TensorFlow avoids
+# transformers probing unrelated user-site TF installs during PEFT import.
+os.environ.setdefault("USE_TF", "0")
 
 from peft import LoraConfig, inject_adapter_in_model
 

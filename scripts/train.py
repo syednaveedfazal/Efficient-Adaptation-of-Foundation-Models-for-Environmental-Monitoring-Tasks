@@ -17,9 +17,15 @@ Usage:
 """
 
 import argparse
+import os
 import sys
 import yaml
 import json
+
+# This project uses a PyTorch-only training path. Setting USE_TF=0 before any
+# third-party ML imports prevents transformers from probing unrelated TF installs.
+os.environ.setdefault("USE_TF", "0")
+
 import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor
