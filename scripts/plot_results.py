@@ -239,8 +239,8 @@ def main():
         means_vram = [np.mean(model_vram[m]) for m in models_sorted]
         stds_vram = [np.std(model_vram[m]) if len(model_vram[m]) > 1 else 0.0 for m in models_sorted]
         
-        plot_colors = [colors.get(m, "#7f7f7f") for m in models_sorted]
-        plot_names = [names.get(m, m) for m in models_sorted]
+        plot_colors = [_model_style(m)[0] for m in models_sorted]
+        plot_names = [_model_style(m)[2] for m in models_sorted]
         
         bars = plt.bar(plot_names, means_vram, yerr=stds_vram, color=plot_colors, alpha=0.85, edgecolor="none", capsize=6, width=0.4)
         
