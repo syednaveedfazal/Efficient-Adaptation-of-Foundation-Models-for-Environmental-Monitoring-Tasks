@@ -1,0 +1,27 @@
+{
+  "experiment": {
+    "model_name": "prithvi_lora_r8",
+    "config": "configs/prithvi_lora_r8.yaml",
+    "split_json": null,
+    "label_budget": 1.0,
+    "seed": 42,
+    "trainable_params": 5893122,
+    "total_params": 309779458,
+    "pct_trainable_params": 1.9024
+  },
+  "metrics": {
+    "loss": 0.15095344185829163,
+    "mean_iou": 0.8926836848258972,
+    "burn_iou": 0.8052665591239929,
+    "bg_iou": 0.9801014065742493,
+    "burn_precision": 0.8798745274543762,
+    "burn_recall": 0.9003955721855164,
+    "burn_dice": 0.8835267424583435,
+    "pixel_accuracy": 0.9824241995811462
+  },
+  "hardware": {
+    "gpu_name": "NVIDIA A40",
+    "max_memory_allocated_mb": 6127.86,
+    "max_memory_reserved_mb": 6470.0
+  }
+}

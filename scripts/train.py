@@ -23,6 +23,7 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor
 from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pathlib import Path
 
 # Make src/ importable when running from project root
@@ -120,6 +121,7 @@ def main():
         logger            = logger,
         log_every_n_steps = 10,
         precision         = cfg["trainer"].get("precision", "32"),
+        plugins           = [SLURMEnvironment(auto_requeue=False)],
     )
 
     print(f"\n{'='*60}")
@@ -196,6 +198,9 @@ def main():
         with open(out_path, "w") as f:
             json.dump(export_data, f, indent=2)
         print(f"\n[Metrics] Successfully exported final metrics to: {out_path}\n")
+
+        from plot_results import main as plot_results
+        plot_results()
 
 
 if __name__ == "__main__":

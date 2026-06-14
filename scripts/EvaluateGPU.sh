@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --job-name=p29_train         # Name of the job in the queue
+#SBATCH --job-name=p29_eval          # Name of the job in the queue
 #SBATCH --partition=A40devel         # Partition (development queue, max 1 hour)
 #SBATCH --gpus=1                     # Request 1 physical GPU
 #SBATCH --nodes=1                    # Run on a single compute node
 #SBATCH --ntasks-per-node=1          # Number of tasks per node
 #SBATCH --cpus-per-task=4            # CPUs requested (useful for PyTorch DataLoader num_workers=4)
 #SBATCH --mem=32G                    # Total RAM requested
-#SBATCH --time=01:00:00              # Max runtime — increased to 1 hr (A40devel max)
+#SBATCH --time=00:20:00              # Validation-only — a few minutes per checkpoint
 #SBATCH --output=logs/job_%j.out     # Path to stdout log (%j is replaced by Job ID)
 #SBATCH --error=logs/job_%j.err      # Path to stderr log
 
@@ -27,23 +27,18 @@ echo "GPU Status:"
 nvidia-smi
 echo "=========================================================="
 
-# --- 3. Execute training ---
-echo "Starting Python execution..."
+# --- 3. Backfill results/metrics/ for the completed Prithvi+LoRA r8 runs ---
+echo "Evaluating 1% budget (best: epoch=21, burn_iou=0.3934)..."
+python -u scripts/evaluate.py \
+    --config     configs/prithvi_lora_r8.yaml \
+    --split_json data/splits/seed_42/split_001pct.json \
+    --ckpt       "results/checkpoints/prithvi_lora_r8_seed_42_split_001pct/epoch=21-val/burn_iou=0.3934.ckpt"
 
-# Plug-and-play: change SPLIT to switch seed/budget, then sbatch this file.
-#   data/splits/seed_42/split_001pct.json   (1%,   ~5 chips)
-#   data/splits/seed_42/split_010pct.json   (10%, ~54 chips)
-#   data/splits/seed_42/split_050pct.json   (50%)
-#   data/splits/seed_123/split_010pct.json  (10%, seed 123)
-#   data/splits/seed_456/split_010pct.json  (10%, seed 456)
-# For 100% budget: comment out the --split_json line below
-# 100% budget: omit --split_json. Resuming from the checkpoint saved
-# before the previous job hit the A40devel 1hr time limit.
-RESUME="results/checkpoints/prithvi_lora_r8_seed_42_split_100pct/epoch=38-val/burn_iou=0.8053.ckpt"
-
-python -u scripts/train.py \
-    --config configs/prithvi_lora_r8.yaml \
-    --resume "$RESUME"
+echo "Evaluating 10% budget (best: epoch=55, burn_iou=0.6695)..."
+python -u scripts/evaluate.py \
+    --config     configs/prithvi_lora_r8.yaml \
+    --split_json data/splits/seed_42/split_010pct.json \
+    --ckpt       "results/checkpoints/prithvi_lora_r8_seed_42_split_010pct/epoch=55-val/burn_iou=0.6695.ckpt"
 
 echo "=========================================================="
 echo "Job finished at:    $(date)"
