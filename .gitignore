@@ -8,6 +8,7 @@ models/
 
 # Logs and cache
 logs/
+lightning_logs/
 wandb/
 __pycache__/
 *.pyc
@@ -15,4 +16,4 @@ __pycache__/
 *.egg-info/
 
 # Environment
-.env
+.env

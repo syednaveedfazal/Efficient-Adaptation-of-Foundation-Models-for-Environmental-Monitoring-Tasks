@@ -164,3 +164,81 @@ class PrithviSegmentor(nn.Module):
         spatial = self.encoder.prepare_features_for_image_model([feats[-1]])
 
         return self.decoder(spatial[0])
+
+
+class PrithviLinearProbe(nn.Module):
+    """
+    Prithvi-EO-2.0-300M backbone (frozen) + convolutional segmentation decoder.
+
+    Usage (via registry):
+      model.name: prithvi_linear_probe
+      model.params:
+        weights_path: models/pretrained/prithvi/Prithvi_EO_V2_300M.pt
+        num_classes:  2
+    """
+
+    def __init__(
+        self,
+        weights_path: str,
+        num_classes:  int = 2,
+    ):
+        super().__init__()
+
+        # ── 1. Load Prithvi backbone ──────────────────────────────────────
+        prithvi_mod = _load_prithvi_mae_module()
+        PrithviMAE  = prithvi_mod.PrithviMAE
+
+        # Instantiate for T=1 static task, 512×512 input
+        full_model = PrithviMAE(
+            img_size          = 512,
+            num_frames        = 1,
+            patch_size        = (1, 16, 16),
+            in_chans          = 6,
+            embed_dim         = 1024,
+            depth             = 24,
+            num_heads         = 16,
+            decoder_embed_dim = 512,
+            decoder_depth     = 8,
+            decoder_num_heads = 16,
+            mlp_ratio         = 4.0,
+        )
+
+        ckpt = torch.load(weights_path, map_location="cpu", weights_only=False)
+        state_dict = ckpt.get("model", ckpt) if isinstance(ckpt, dict) else ckpt
+
+        # Drop positional embedding buffers (sincos re-initialised & interpolated)
+        state_dict = {k: v for k, v in state_dict.items() if "pos_embed" not in k}
+
+        missing, unexpected = full_model.load_state_dict(state_dict, strict=False)
+        print(f"[Prithvi LP] Loaded {weights_path}")
+        print(f"             Missing keys  : {len(missing)}  (pos_embed sincos buffers excluded)")
+        print(f"             Unexpected keys: {len(unexpected)}")
+
+        self.encoder = full_model.encoder   # PrithviViT encoder
+
+        # ── 2. Freeze the entire encoder ──────────────────────────────────
+        for param in self.encoder.parameters():
+            param.requires_grad = False
+
+        # ── 3. Segmentation decoder (always trained) ──────────────────────
+        self.decoder = SegDecoder(in_channels=1024, num_classes=num_classes)
+
+        self._print_param_summary()
+
+    def _print_param_summary(self):
+        total     = sum(p.numel() for p in self.parameters())
+        trainable = sum(p.numel() for p in self.parameters() if p.requires_grad)
+        print(f"[Prithvi LP] Parameters — total: {total:,}  |  trainable: {trainable:,} "
+              f"({100 * trainable / total:.2f}%)")
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            x: (B, 6, H, W) normalised satellite image
+        Returns:
+            (B, num_classes, H, W) raw logits
+        """
+        feats = self.encoder.forward_features(x)
+        spatial = self.encoder.prepare_features_for_image_model([feats[-1]])
+        return self.decoder(spatial[0])
+

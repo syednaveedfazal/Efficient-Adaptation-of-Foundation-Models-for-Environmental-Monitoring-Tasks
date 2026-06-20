@@ -134,7 +134,7 @@ def create_splits(scenes: list, split_dir: Path):
                     f,
                     indent=2,
                 )
-            print(f"    seed={seed}  budget={round(budget*100):3d}%  → {n:4d} scenes  [{out.name}]")
+            print(f"    seed={seed}  budget={round(budget*100):3d}%  -> {n:4d} scenes  [{out.name}]")
 
 
 def main():
@@ -183,7 +183,7 @@ def main():
         stats_path = out_dir / "stats.json"
         with open(stats_path, "w") as f:
             json.dump(stats, f, indent=2)
-        print(f"  Band stats saved → {stats_path}")
+        print(f"  Band stats saved -> {stats_path}")
 
     # Label splits
     print("\nCreating nested label-budget splits ...")

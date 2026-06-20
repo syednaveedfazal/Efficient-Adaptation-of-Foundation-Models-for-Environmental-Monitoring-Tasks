@@ -1,0 +1,36 @@
+seed: 42
+use_wandb: false
+wandb_project: burn-scar
+
+# 1. Dataset Settings
+data:
+  raw_dir:     data/raw/hls_burn_scars       # Where raw images are stored
+  stats_path:  data/processed/stats.json     # Mean and standard deviation for normalization
+  val_json:    data/splits/val_scenes.json   # Pre-defined validation list
+  batch_size:  4                             # Number of images loaded at a single time
+  num_workers: 4                             # Number of CPU threads to load data
+
+# 2. Model Settings (This builds our new model!)
+model:
+  name: prithvi_linear_probe                 # Registry key we added in Step 2
+  params:
+    weights_path: models/pretrained/prithvi/Prithvi_EO_V2_300M.pt
+    num_classes:  2                          # 0 = normal land, 1 = burned land
+
+# 3. Loss/Criterion Settings
+loss:
+  ce_weight:     0.5                         # Cross Entropy weight (detects patterns)
+  dice_weight:   0.5                         # Dice loss weight (detects exact overlap)
+  class_weights: [1.0, 8.0]                 # Burn scars are rare, so we pay 8x more attention to them
+
+# 4. Training Optimization Settings
+optimizer:
+  lr:           2.0e-4                      # Learning rate (how large updates should be)
+  weight_decay: 1.0e-2                      # Regularization to prevent overfitting
+
+# 5. General PyTorch Lightning Trainer Settings
+trainer:
+  max_epochs:     100                       # Train for maximum 100 loops
+  patience:       15                        # Stop early if the model stops improving for 15 epochs
+  checkpoint_dir: results/checkpoints/      # Where to save the best trained models
+  precision:      16-mixed                  # Uses mixed precision to save GPU memory
