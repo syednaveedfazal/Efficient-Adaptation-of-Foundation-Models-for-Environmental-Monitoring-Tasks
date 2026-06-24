@@ -1,0 +1,31 @@
+{
+  "experiment": {
+    "model_name": "prithvi_fcn_lora_r16",
+    "config": "configs/prithvi_fcn_lora_r16.yaml",
+    "split_json": "data/splits/seed_42/split_010pct.json",
+    "label_budget": 0.1,
+    "seed": 42,
+    "trainable_params": 8651778,
+    "total_params": 312538114,
+    "pct_trainable_params": 2.7682,
+    "fwd_gflops": 320.2752,
+    "bwd_gflops": 640.5504,
+    "total_gflops": 960.8256
+  },
+  "metrics": {
+    "loss": 0.21763519942760468,
+    "mean_iou": 0.8354358673095703,
+    "burn_iou": 0.7028664946556091,
+    "bg_iou": 0.9680055379867554,
+    "burn_precision": 0.8195280432701111,
+    "burn_recall": 0.835949182510376,
+    "burn_dice": 0.8126364350318909,
+    "pixel_accuracy": 0.9714671969413757
+  },
+  "hardware": {
+    "gpu_name": "NVIDIA A40",
+    "max_memory_allocated_mb": 6089.19,
+    "max_memory_reserved_mb": 6506.0,
+    "training_duration_seconds": 654.77
+  }
+}

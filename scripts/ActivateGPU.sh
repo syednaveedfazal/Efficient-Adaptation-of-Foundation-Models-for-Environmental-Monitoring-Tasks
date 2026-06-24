@@ -39,10 +39,12 @@ echo "Starting Python execution..."
 # For 100% budget: comment out the --split_json line below
 # 100% budget: omit --split_json. Resuming from the checkpoint saved
 # before the previous job hit the A40devel 1hr time limit.
-RESUME="results/checkpoints/prithvi_lora_r8_seed_42_split_100pct/epoch=38-val/burn_iou=0.8053.ckpt"
+SPLIT="data/splits/seed_42/split_010pct.json"
+RESUME="results/checkpoints/prithvi_seg_lora_r8_seed_42_split_010pct/epoch=55-val/burn_iou=0.6695.ckpt"
 
 python -u scripts/train.py \
-    --config configs/prithvi_lora_r8.yaml \
+    --config configs/prithvi_seg_lora_r8.yaml \
+    --split_json "$SPLIT" \
     --resume "$RESUME"
 
 echo "=========================================================="

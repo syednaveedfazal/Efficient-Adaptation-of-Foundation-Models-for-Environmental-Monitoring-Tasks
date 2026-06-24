@@ -10,11 +10,20 @@ No changes needed to train.py, module.py, or any shared code.
 """
 
 from src.models.unet import UNet
-from src.models.prithvi import PrithviSegmentor
+from src.models.prithvi_seg import PrithviSegmentor
+from src.models.prithvi_unet import PrithviUNetSegmentor
+from src.models.prithvi_fcn import PrithviFCNSegmentor
 
 MODEL_REGISTRY: dict = {
-    "unet":            UNet,
-    "prithvi_lora_r8": PrithviSegmentor,
+    "unet_scratch":        UNet,
+    "prithvi_seg_lora_r8": PrithviSegmentor,
+    "prithvi_seg_lora_r16":PrithviSegmentor,
+    "prithvi_unet_lora_r8":PrithviUNetSegmentor,
+    "prithvi_unet_lora_r16":PrithviUNetSegmentor,
+    "prithvi_fcn_lora_r8": PrithviFCNSegmentor,
+    "prithvi_fcn_lora_r16":PrithviFCNSegmentor,
+    "prithvi_fcn_full_ft": PrithviFCNSegmentor,
+    "prithvi_fcn_linear_probe": PrithviFCNSegmentor,
 }
 
 

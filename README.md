@@ -81,7 +81,7 @@ project/
 │   ├── models/
 │   │   ├── registry.py         # Maps config name → model class
 │   │   ├── unet.py             # UNet from scratch (baseline)
-│   │   └── prithvi.py          # Prithvi + LoRA segmentor
+│   │   └── prithvi_seg.py      # Prithvi + LoRA segmentor (SegDecoder)
 │   ├── training/
 │   │   ├── module.py           # PyTorch Lightning training loop (shared)
 │   │   ├── losses.py           # CE + Dice combined loss

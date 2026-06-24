@@ -1,0 +1,31 @@
+{
+  "experiment": {
+    "model_name": "prithvi_fcn_linear_probe",
+    "config": "configs/prithvi_fcn_linear_probe.yaml",
+    "split_json": null,
+    "label_budget": 1.0,
+    "seed": 42,
+    "trainable_params": 2360322,
+    "total_params": 306246658,
+    "pct_trainable_params": 0.7707,
+    "fwd_gflops": 313.8265,
+    "bwd_gflops": 469.0799,
+    "total_gflops": 782.9064
+  },
+  "metrics": {
+    "loss": 0.19020749628543854,
+    "mean_iou": 0.832197368144989,
+    "burn_iou": 0.6949143409729004,
+    "bg_iou": 0.9694799780845642,
+    "burn_precision": 0.8150209784507751,
+    "burn_recall": 0.8278640508651733,
+    "burn_dice": 0.8084779977798462,
+    "pixel_accuracy": 0.9730689525604248
+  },
+  "hardware": {
+    "gpu_name": "NVIDIA A40",
+    "max_memory_allocated_mb": 1720.9,
+    "max_memory_reserved_mb": 1802.0,
+    "training_duration_seconds": 1225.11
+  }
+}

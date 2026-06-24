@@ -20,6 +20,7 @@ import sys
 import yaml
 import json
 import torch
+import time
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor
 from pytorch_lightning.loggers import WandbLogger
@@ -48,20 +49,44 @@ def main():
                         help="Path to a Lightning checkpoint to resume training from. "
                              "Restores model weights, optimizer, LR scheduler, and "
                              "early-stopping counter exactly where training left off.")
+    parser.add_argument("--seed",
+                        type=int,
+                        default=None,
+                        help="Override training and dataset seed")
+    parser.add_argument("--delete_ckpt",
+                        action="store_true",
+                        help="Delete checkpoints folder after training to conserve space")
     args = parser.parse_args()
 
     with open(args.config) as f:
         cfg = yaml.safe_load(f)
 
-    pl.seed_everything(cfg.get("seed", 42), workers=True)
+    # 1. Determine active seed
+    seed = cfg.get("seed", 42)
+    # Check if a split JSON specifies a seed and use it
+    if args.split_json:
+        try:
+            with open(args.split_json) as sf:
+                split_data = json.load(sf)
+                seed = split_data.get("seed", seed)
+        except Exception:
+            pass
+            
+    # Command line override has highest priority
+    if args.seed is not None:
+        seed = args.seed
+
+    cfg["seed"] = seed
+    pl.seed_everything(seed, workers=True)
 
     # Derive a readable run name for checkpoints and W&B
     model_name = cfg["model"]["name"]
+
     if args.split_json:
         p = Path(args.split_json)
-        run_name = f"{model_name}_{p.parent.name}_{p.stem}"   # e.g. unet_seed_42_split_010pct
+        run_name = f"{model_name}_{p.parent.name}_{p.stem}"   # e.g. unet_scratch_seed_42_split_010pct
     else:
-        run_name = f"{model_name}_seed_42_split_100pct"
+        run_name = f"{model_name}_seed_{seed}_split_100pct"
 
     # ------------------------------------------------------------------
     # Data
@@ -90,7 +115,7 @@ def main():
             filename  = "{epoch:02d}-{val/burn_iou:.4f}",
             monitor   = "val/burn_iou",
             mode      = "max",
-            save_top_k = 3,
+            save_top_k = 1,
         ),
         EarlyStopping(
             monitor  = "val/burn_iou",
@@ -130,7 +155,9 @@ def main():
     print(f"  Split:  {args.split_json or 'ALL (100%)'}")
     print(f"{'='*60}\n")
 
+    start_time = time.time()
     trainer.fit(model, datamodule=dm, ckpt_path=args.resume)
+    training_duration_seconds = round(time.time() - start_time, 2)
     print(f"\nDone. Checkpoints saved in: {ckpt_dir}")
 
     # ------------------------------------------------------------------
@@ -179,6 +206,20 @@ def main():
             gpu_stats["max_memory_allocated_mb"] = 0.0
             gpu_stats["max_memory_reserved_mb"] = 0.0
 
+        if 'training_duration_seconds' in locals():
+            gpu_stats["training_duration_seconds"] = training_duration_seconds
+        else:
+            gpu_stats["training_duration_seconds"] = 0.0
+
+        # Compute GFLOPs dynamically
+        try:
+            from src.utils.flops import get_model_training_gflops
+            adaptation_strategy = cfg["model"]["params"].get("adaptation", "full_ft")
+            fwd_gflops, bwd_gflops = get_model_training_gflops(model.model, adaptation_strategy)
+        except Exception as e:
+            print(f"[WARN] Failed to compute training GFLOPs: {e}")
+            fwd_gflops, bwd_gflops = 0.0, 0.0
+
         export_data = {
             "experiment": {
                 "model_name": model_name,
@@ -188,7 +229,10 @@ def main():
                 "seed": seed,
                 "trainable_params": trainable_params,
                 "total_params": total_params,
-                "pct_trainable_params": round(100.0 * trainable_params / total_params, 4) if total_params > 0 else 0.0
+                "pct_trainable_params": round(100.0 * trainable_params / total_params, 4) if total_params > 0 else 0.0,
+                "fwd_gflops": fwd_gflops,
+                "bwd_gflops": bwd_gflops,
+                "total_gflops": round(fwd_gflops + bwd_gflops, 4)
             },
             "metrics": clean_metrics,
             "hardware": gpu_stats
@@ -198,6 +242,16 @@ def main():
         with open(out_path, "w") as f:
             json.dump(export_data, f, indent=2)
         print(f"\n[Metrics] Successfully exported final metrics to: {out_path}\n")
+
+        # Delete large checkpoint directory if requested to save space
+        if args.delete_ckpt:
+            try:
+                import shutil
+                if ckpt_dir.exists():
+                    print(f"[Cleanup] Deleting checkpoints in {ckpt_dir} to free up disk space.")
+                    shutil.rmtree(ckpt_dir)
+            except Exception as e:
+                print(f"[WARN] Failed to clean up checkpoint directory {ckpt_dir}: {e}")
 
         from plot_results import main as plot_results
         plot_results()

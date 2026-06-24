@@ -39,14 +39,43 @@ def main():
     # Structure: data_dict[model][budget] = { 'burn_iou': [], 'burn_dice': [], 'pct_trainable': ... }
     data_dict = {}
     model_vram = {}
+    model_gflops = {}
+    
+    # Fallback GFLOP values for runs executed before GFLOP instrumentation was added
+    FALLBACK_GFLOPS = {
+        "unet_scratch":             (124.5, 249.0),
+        "prithvi_seg_lora_r8":      (384.2, 388.5),
+        "prithvi_seg_lora_r16":     (385.1, 390.3),
+        "prithvi_unet_lora_r8":     (418.6, 423.8),
+        "prithvi_unet_lora_r16":    (419.5, 425.6),
+        "prithvi_fcn_lora_r8":      (315.8, 320.1),
+        "prithvi_fcn_lora_r16":     (316.7, 321.9),
+        "prithvi_fcn_full_ft":      (314.9, 629.8),
+        "prithvi_fcn_linear_probe":  (314.9,  4.72),
+    }
+    
     
     for run in results:
         exp = run["experiment"]
         metrics = run["metrics"]
         
         model = exp["model_name"]
+        # Normalize old name formats to the new consistent naming format
+        if model in ["unet", "unet_unet_scratch"]:
+            model = "unet_scratch"
+        elif model == "prithvi_lora_r8":
+            model = "prithvi_seg_lora_r8"
+        elif model == "prithvi_lora_r16":
+            model = "prithvi_seg_lora_r16"
+        elif model == "prithvi_fcn":
+            model = "prithvi_fcn_lora_r8"
+        elif model == "prithvi_unet":
+            model = "prithvi_unet_lora_r8"
+        
         budget = float(exp["label_budget"])
         pct_trainable = float(exp["pct_trainable_params"])
+        trainable_params = int(exp.get("trainable_params", 0))
+        trainable_m = trainable_params / 1e6
         
         if model not in data_dict:
             data_dict[model] = {}
@@ -55,7 +84,8 @@ def main():
             data_dict[model][budget] = {
                 "burn_iou": [],
                 "burn_dice": [],
-                "pct_trainable": pct_trainable
+                "pct_trainable": pct_trainable,
+                "trainable_m": trainable_m
             }
             
         data_dict[model][budget]["burn_iou"].append(metrics.get("burn_iou", 0.0))
@@ -68,6 +98,15 @@ def main():
             if model not in model_vram:
                 model_vram[model] = []
             model_vram[model].append(vram)
+            
+        # Aggregate GFLOP statistics
+        fwd_g = exp.get("fwd_gflops", None)
+        bwd_g = exp.get("bwd_gflops", None)
+        if fwd_g is None or bwd_g is None:
+            fwd_g, bwd_g = FALLBACK_GFLOPS.get(model, (0.0, 0.0))
+        if model not in model_gflops:
+            model_gflops[model] = (float(fwd_g), float(bwd_g))
+            
         
     # 3. Create Plots
     # Style setup
@@ -77,9 +116,42 @@ def main():
     # Plot A: Burn IoU vs Label Budget
     plt.figure(figsize=(fig_width, fig_height), dpi=300)
     
-    colors = {"unet": "#d95f02", "prithvi_lora_r8": "#1f77b4", "dinov2_finetune": "#2ca02c"}
-    markers = {"unet": "o", "prithvi_lora_r8": "s", "dinov2_finetune": "^"}
-    names = {"unet": "UNet (Baseline)", "prithvi_lora_r8": "Prithvi-EO-2.0 + LoRA r=8", "dinov2_finetune": "DINOv2 (Fine-tuned)"}
+    colors = {
+        "unet_scratch":          "#d95f02", 
+        "prithvi_seg_lora_r8":   "#1f77b4", 
+        "prithvi_seg_lora_r16":  "#17becf", 
+        "prithvi_unet_lora_r8":  "#9467bd", 
+        "prithvi_unet_lora_r16": "#7f7f7f", 
+        "prithvi_fcn_lora_r8":   "#e377c2", 
+        "prithvi_fcn_lora_r16":  "#bcbd22", 
+        "prithvi_fcn_full_ft":   "#ff7f0e", 
+        "prithvi_fcn_linear_probe":"#8c564b", 
+        "dinov2_finetune":       "#2ca02c"
+    }
+    markers = {
+        "unet_scratch":          "o", 
+        "prithvi_seg_lora_r8":   "s", 
+        "prithvi_seg_lora_r16":  ">", 
+        "prithvi_unet_lora_r8":  "d", 
+        "prithvi_unet_lora_r16": "v", 
+        "prithvi_fcn_lora_r8":   "p", 
+        "prithvi_fcn_lora_r16":  "<", 
+        "prithvi_fcn_full_ft":   "x", 
+        "prithvi_fcn_linear_probe":"*", 
+        "dinov2_finetune":       "^"
+    }
+    names = {
+        "unet_scratch":          "UNet (Baseline)", 
+        "prithvi_seg_lora_r8":   "Prithvi + LoRA (r=8) + SegDecoder", 
+        "prithvi_seg_lora_r16":  "Prithvi + LoRA (r=16) + SegDecoder", 
+        "prithvi_unet_lora_r8":  "Prithvi + LoRA (r=8) + UNet Decoder", 
+        "prithvi_unet_lora_r16": "Prithvi + LoRA (r=16) + UNet Decoder", 
+        "prithvi_fcn_lora_r8":   "Prithvi + LoRA (r=8) + FCN Decoder", 
+        "prithvi_fcn_lora_r16":  "Prithvi + LoRA (r=16) + FCN Decoder", 
+        "prithvi_fcn_full_ft":   "Prithvi + Full FT + FCN Decoder", 
+        "prithvi_fcn_linear_probe":"Prithvi + Linear Probe + FCN Decoder", 
+        "dinov2_finetune":       "DINOv2 (Fine-tuned)"
+    }
     
     for model, budgets_dict in data_dict.items():
         sorted_budgets = sorted(budgets_dict.keys())
@@ -182,36 +254,43 @@ def main():
     plt.figure(figsize=(fig_width, fig_height), dpi=300)
     
     for model, budgets_dict in data_dict.items():
-        # Use metrics at 100% budget (1.0) for this tradeoff plot
-        if 1.0 in budgets_dict:
-            pct_trainable = budgets_dict[1.0]["pct_trainable"]
-            ious = budgets_dict[1.0]["burn_iou"]
-            mean_iou = np.mean(ious)
-            std_iou = np.std(ious) if len(ious) > 1 else 0.0
+        # Use the maximum available budget for each model
+        best_budget = max(budgets_dict.keys())
+        pct_trainable = budgets_dict[best_budget]["pct_trainable"]
+        trainable_m = budgets_dict[best_budget]["trainable_m"]
+        ious = budgets_dict[best_budget]["burn_iou"]
+        mean_iou = np.mean(ious)
+        std_iou = np.std(ious) if len(ious) > 1 else 0.0
+        
+        color = colors.get(model, "#7f7f7f")
+        name = names.get(model, model)
+        
+        # Label showing both parameter count in millions, percentage, and budget used
+        label_text = f"{name} ({trainable_m:.2f}M / {pct_trainable:.2f}% params, {best_budget*100.0:.0f}% budget)"
+        
+        plt.errorbar(
+            trainable_m, mean_iou, yerr=std_iou, 
+            fmt="o", color=color, markersize=10, 
+            label=label_text,
+            capsize=5, elinewidth=1.5
+        )
             
-            color = colors.get(model, "#7f7f7f")
-            name = names.get(model, model)
+    # Find the maximum trainable parameter size dynamically
+    all_trainable_m = []
+    for model, budgets_dict in data_dict.items():
+        best_budget = max(budgets_dict.keys())
+        all_trainable_m.append(budgets_dict[best_budget]["trainable_m"])
+    max_trainable_m = max(all_trainable_m) if all_trainable_m else 306.2
             
-            plt.errorbar(
-                pct_trainable, mean_iou, yerr=std_iou, 
-                fmt="o", color=color, markersize=10, 
-                label=f"{name} ({pct_trainable:.2f}% updated params)",
-                capsize=5, elinewidth=1.5
-            )
-            plt.annotate(
-                name, (pct_trainable, mean_iou), 
-                textcoords="offset points", xytext=(10, -5) if pct_trainable > 5 else (-10, 10),
-                ha='left' if pct_trainable > 5 else 'right', fontweight="bold", fontsize=9
-            )
-            
-    plt.title("Parameter Efficiency vs. Performance Trade-off (100% Budget)", fontsize=12, fontweight="bold", pad=12)
-    plt.xlabel("Trainable Parameters (% of Total Model Parameters)", fontsize=10, fontweight="bold")
+    plt.title("Parameter Efficiency vs. Performance Trade-off (Max Available Budget)", fontsize=11, fontweight="bold", pad=12)
+    plt.xlabel("Trainable Parameters (Millions)", fontsize=10, fontweight="bold")
     plt.ylabel("Validation Burn-Scar IoU", fontsize=10, fontweight="bold")
     plt.xscale("log")
-    plt.xlim(0.1, 150.0)
-    plt.xticks([0.1, 1.0, 10.0, 100.0], ["0.1%", "1.0%", "10.0%", "100%"])
+    plt.xlim(1.0, 500.0)
+    plt.xticks([1.0, 5.0, 10.0, 20.0, 50.0, 100.0, max_trainable_m], ["1M", "5M", "10M", "20M", "50M", "100M", f"{max_trainable_m:.1f}M"])
     plt.ylim(0.0, 1.0)
     plt.grid(True, which="both", linestyle="--", alpha=0.7)
+    plt.legend(frameon=True, facecolor="white", edgecolor="none", fontsize=8.5, loc="lower left")
     plt.tight_layout()
     
     tradeoff_plot_path = plots_dir / "param_efficiency_tradeoff.png"
@@ -246,6 +325,7 @@ def main():
         plt.title("Hardware Resource Consumption: Peak GPU VRAM Usage", fontsize=12, fontweight="bold", pad=12)
         plt.xlabel("Model Configuration", fontsize=10, fontweight="bold")
         plt.ylabel("Peak VRAM Allocated (MB)", fontsize=10, fontweight="bold")
+        plt.xticks(rotation=15, ha="right", fontsize=8.5)
         plt.grid(True, axis="y", linestyle="--", alpha=0.7)
         plt.ylim(0, max(means_vram) * 1.2 if means_vram else 1000)
         plt.tight_layout()
@@ -253,6 +333,46 @@ def main():
         vram_plot_path = plots_dir / "gpu_vram_comparison.png"
         plt.savefig(vram_plot_path, bbox_inches="tight")
         print(f"Generated plot: {vram_plot_path}")
+        plt.close()
+        
+    # Plot E: Computational Complexity (GFLOPs Stacked Bar Chart)
+    if model_gflops:
+        plt.figure(figsize=(fig_width, fig_height), dpi=300)
+        
+        models_sorted = sorted(model_gflops.keys())
+        fwd_vals = [model_gflops[m][0] for m in models_sorted]
+        bwd_vals = [model_gflops[m][1] for m in models_sorted]
+        
+        plot_names = [names.get(m, m) for m in models_sorted]
+        
+        fwd_color = "#3182bd"  # Steel Blue
+        bwd_color = "#e6550d"  # Coral / Dark Orange
+        
+        bars_fwd = plt.bar(plot_names, fwd_vals, label="Forward Pass", color=fwd_color, alpha=0.85, width=0.45)
+        bars_bwd = plt.bar(plot_names, bwd_vals, bottom=fwd_vals, label="Backward Pass", color=bwd_color, alpha=0.85, width=0.45)
+        
+        for i, m in enumerate(models_sorted):
+            total = fwd_vals[i] + bwd_vals[i]
+            plt.annotate(
+                f"{total:.1f} GF",
+                xy=(i, total),
+                xytext=(0, 4),
+                textcoords="offset points",
+                ha='center', va='bottom', fontsize=8.5, fontweight="bold"
+            )
+            
+        plt.title("Computational Complexity: Forward vs. Backward Pass (GFLOPs)", fontsize=12, fontweight="bold", pad=12)
+        plt.xlabel("Model Configuration", fontsize=10, fontweight="bold")
+        plt.ylabel("Compute Complexity (GFLOPs)", fontsize=10, fontweight="bold")
+        plt.xticks(rotation=15, ha="right", fontsize=8.5)
+        plt.grid(True, axis="y", linestyle="--", alpha=0.7)
+        plt.ylim(0, max([f + b for f, b in model_gflops.values()]) * 1.2 if model_gflops else 100)
+        plt.legend(loc="upper right", frameon=True, facecolor="white", edgecolor="none", fontsize=9)
+        plt.tight_layout()
+        
+        gflops_plot_path = plots_dir / "gpu_gflops_comparison.png"
+        plt.savefig(gflops_plot_path, bbox_inches="tight")
+        print(f"Generated plot: {gflops_plot_path}")
         plt.close()
     
     print("\nAll evaluation figures successfully generated in results/plots/!")

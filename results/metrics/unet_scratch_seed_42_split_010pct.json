@@ -1,0 +1,31 @@
+{
+  "experiment": {
+    "model_name": "unet_scratch",
+    "config": "configs/unet_scratch.yaml",
+    "split_json": "data/splits/seed_42/split_010pct.json",
+    "label_budget": 0.1,
+    "seed": 42,
+    "trainable_params": 23619377,
+    "total_params": 23619377,
+    "pct_trainable_params": 100.0,
+    "fwd_gflops": 219.0483,
+    "bwd_gflops": 438.0967,
+    "total_gflops": 657.145
+  },
+  "metrics": {
+    "loss": 0.24879328906536102,
+    "mean_iou": 0.7802514433860779,
+    "burn_iou": 0.5996379256248474,
+    "bg_iou": 0.9608645439147949,
+    "burn_precision": 0.7361201047897339,
+    "burn_recall": 0.7603997588157654,
+    "burn_dice": 0.7150253057479858,
+    "pixel_accuracy": 0.9646143913269043
+  },
+  "hardware": {
+    "gpu_name": "NVIDIA A40",
+    "max_memory_allocated_mb": 4115.84,
+    "max_memory_reserved_mb": 4856.0,
+    "training_duration_seconds": 659.47
+  }
+}

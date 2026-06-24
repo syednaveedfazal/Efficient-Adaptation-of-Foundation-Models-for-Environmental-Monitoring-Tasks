@@ -1,12 +1,12 @@
 #!/bin/bash
 #SBATCH --job-name=p29_unet
-#SBATCH --partition=A40short
+#SBATCH --partition=A40devel
 #SBATCH --gpus=1
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
-#SBATCH --time=08:00:00
+#SBATCH --time=01:00:00
 #SBATCH --output=logs/job_%j.out     # Path to stdout log (%j is replaced by Job ID)
 #SBATCH --error=logs/job_%j.err      # Path to stderr log
 
@@ -17,6 +17,9 @@ echo "Start:    $(date)"
 echo "=========================================================="
 
 # Conda
+export TMPDIR="/home/s93nsyed/p29_tmp"
+mkdir -p "$TMPDIR"
+
 CONDA_PATH=$(conda info --base)
 source "$CONDA_PATH/etc/profile.d/conda.sh"
 conda activate p29
@@ -41,8 +44,11 @@ echo "=========================================================="
 echo "Starting UNet training ..."
 
 python -u scripts/train.py \
-    --config     configs/unet_baseline.yaml \
-    --split_json data/splits/seed_42/split_100pct.json
+    --config     configs/unet_scratch.yaml \
+    --split_json data/splits/seed_42/split_001pct.json
+
+# --- Clean up temporary files ---
+rm -rf "$TMPDIR"/*
 
 echo "=========================================================="
 echo "Finished: $(date)"
