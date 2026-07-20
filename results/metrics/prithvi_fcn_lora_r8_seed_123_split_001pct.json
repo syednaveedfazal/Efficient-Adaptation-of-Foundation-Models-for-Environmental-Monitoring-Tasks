@@ -9,23 +9,23 @@
     "total_params": 309392386,
     "pct_trainable_params": 1.7796,
     "fwd_gflops": 317.0508,
-    "bwd_gflops": 634.1017,
-    "total_gflops": 951.1525
+    "bwd_gflops": 319.4699,
+    "total_gflops": 636.5207
   },
   "metrics": {
-    "loss": 0.566244900226593,
-    "mean_iou": 0.4679480195045471,
-    "burn_iou": 0.2260349988937378,
-    "bg_iou": 0.7098608016967773,
-    "burn_precision": 0.3751109540462494,
-    "burn_recall": 0.6663570404052734,
-    "burn_dice": 0.3379303216934204,
-    "pixel_accuracy": 0.7439424991607666
+    "loss": 0.5662540197372437,
+    "mean_iou": 0.46796295046806335,
+    "burn_iou": 0.22601118683815002,
+    "bg_iou": 0.7099148035049438,
+    "burn_precision": 0.37527552247047424,
+    "burn_recall": 0.6662301421165466,
+    "burn_dice": 0.3378959596157074,
+    "pixel_accuracy": 0.7439908981323242
   },
   "hardware": {
     "gpu_name": "NVIDIA A40",
     "max_memory_allocated_mb": 6007.22,
-    "max_memory_reserved_mb": 6310.0,
-    "training_duration_seconds": 224.11
+    "max_memory_reserved_mb": 6308.0,
+    "training_duration_seconds": 223.2
   }
 }

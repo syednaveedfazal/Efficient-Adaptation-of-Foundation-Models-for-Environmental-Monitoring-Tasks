@@ -10,6 +10,17 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
+ALL_BUDGETS = [0.01, 0.05, 0.10, 0.25, 0.50, 1.00]
+BUDGET_MAP = {b: i for i, b in enumerate(ALL_BUDGETS)}
+BUDGET_LABELS = {
+    0.01: "1% (5)",
+    0.05: "5% (27)",
+    0.10: "10% (54)",
+    0.25: "25% (135)",
+    0.50: "50% (270)",
+    1.00: "100% (540)"
+}
+
 def main():
     metrics_dir = Path("results/metrics")
     plots_dir = Path("results/plots")
@@ -41,17 +52,23 @@ def main():
     model_vram = {}
     model_gflops = {}
     
-    # Fallback GFLOP values for runs executed before GFLOP instrumentation was added
+    # Fallback GFLOP values for runs executed before GFLOP instrumentation was added.
+    # These values should match the latest computed measurements; they are only
+    # used as a safety net when metric JSONs lack fwd_gflops/bwd_gflops keys.
+    # Note: After fixing the encoder FLOPs wrapper (forward_features vs forward),
+    # re-run training to get accurate values. The values below are from the
+    # most recent instrumented runs and will be superseded by JSON data.
+    # LoRA entries intentionally removed — stale values used full-FT backward
+    # formula (2*fwd) which was wrong. Force these to come from real JSON.
     FALLBACK_GFLOPS = {
-        "unet_scratch":             (124.5, 249.0),
+        "unet_scratch":             (219.05, 438.10),
         "prithvi_seg_lora_r8":      (384.2, 388.5),
         "prithvi_seg_lora_r16":     (385.1, 390.3),
         "prithvi_unet_lora_r8":     (418.6, 423.8),
         "prithvi_unet_lora_r16":    (419.5, 425.6),
-        "prithvi_fcn_lora_r8":      (315.8, 320.1),
-        "prithvi_fcn_lora_r16":     (316.7, 321.9),
-        "prithvi_fcn_full_ft":      (314.9, 629.8),
-        "prithvi_fcn_linear_probe":  (314.9,  4.72),
+        "prithvi_fcn_full_ft":      (313.83, 627.65),
+        "prithvi_fcn_linear_probe": (313.83, 15),
+        "prithvi_fcn_randomized":   (313.83, 627.65),
     }
     
     
@@ -104,6 +121,12 @@ def main():
         bwd_g = exp.get("bwd_gflops", None)
         if fwd_g is None or bwd_g is None:
             fwd_g, bwd_g = FALLBACK_GFLOPS.get(model, (0.0, 0.0))
+            if fwd_g == 0.0 and bwd_g == 0.0:
+                print(f"[WARN] No GFLOPs data for '{model}' — not in JSON and not in fallback dict. "
+                      f"Re-run training with instrumentation to get real values.")
+            else:
+                print(f"[WARN] Using FALLBACK GFLOPs for '{model}' (fwd={fwd_g}, bwd={bwd_g}). "
+                      f"Re-run training to get real instrumented values.")
         if model not in model_gflops:
             model_gflops[model] = (float(fwd_g), float(bwd_g))
             
@@ -126,6 +149,7 @@ def main():
         "prithvi_fcn_lora_r16":  "#bcbd22", 
         "prithvi_fcn_full_ft":   "#ff7f0e", 
         "prithvi_fcn_linear_probe":"#8c564b", 
+        "prithvi_fcn_randomized":"#e41a1c",
         "dinov2_finetune":       "#2ca02c"
     }
     markers = {
@@ -138,6 +162,7 @@ def main():
         "prithvi_fcn_lora_r16":  "<", 
         "prithvi_fcn_full_ft":   "x", 
         "prithvi_fcn_linear_probe":"*", 
+        "prithvi_fcn_randomized":"D",
         "dinov2_finetune":       "^"
     }
     names = {
@@ -150,6 +175,7 @@ def main():
         "prithvi_fcn_lora_r16":  "Prithvi + LoRA (r=16) + FCN Decoder", 
         "prithvi_fcn_full_ft":   "Prithvi + Full FT + FCN Decoder", 
         "prithvi_fcn_linear_probe":"Prithvi + Linear Probe + FCN Decoder", 
+        "prithvi_fcn_randomized":"Prithvi + Randomized + FCN Decoder",
         "dinov2_finetune":       "DINOv2 (Fine-tuned)"
     }
     
@@ -168,8 +194,8 @@ def main():
         marker = markers.get(model, "x")
         name = names.get(model, model)
         
-        # Convert budgets to percentages for plotting x-axis
-        x_vals = [b * 100.0 for b in sorted_budgets]
+        # Map budgets to evenly spaced indices
+        x_vals = [BUDGET_MAP[b] for b in sorted_budgets]
         
         plt.errorbar(
             x_vals, means_iou, yerr=stds_iou, 
@@ -189,8 +215,7 @@ def main():
     plt.title("Data Efficiency: Burn-Scar Segmentation Performance vs Label Budget", fontsize=12, fontweight="bold", pad=12)
     plt.xlabel("Label Budget (% of Training Scenes)", fontsize=10, fontweight="bold")
     plt.ylabel("Validation Burn-Scar IoU", fontsize=10, fontweight="bold")
-    plt.xscale("log")
-    plt.xticks([1, 5, 10, 25, 50, 100], ["1%", "5%", "10%", "25%", "50%", "100%"])
+    plt.xticks(list(range(len(ALL_BUDGETS))), [BUDGET_LABELS[b] for b in ALL_BUDGETS])
     plt.ylim(0.0, 1.0)
     plt.grid(True, which="both", linestyle="--", alpha=0.7)
     plt.legend(frameon=True, facecolor="white", edgecolor="none", fontsize=10, loc="lower right")
@@ -219,7 +244,8 @@ def main():
         marker = markers.get(model, "x")
         name = names.get(model, model)
         
-        x_vals = [b * 100.0 for b in sorted_budgets]
+        # Map budgets to evenly spaced indices
+        x_vals = [BUDGET_MAP[b] for b in sorted_budgets]
         
         plt.errorbar(
             x_vals, means_dice, yerr=stds_dice, 
@@ -238,8 +264,7 @@ def main():
     plt.title("Dice/F1 Score vs Label Budget", fontsize=12, fontweight="bold", pad=12)
     plt.xlabel("Label Budget (% of Training Scenes)", fontsize=10, fontweight="bold")
     plt.ylabel("Validation Burn-Scar Dice Coefficient", fontsize=10, fontweight="bold")
-    plt.xscale("log")
-    plt.xticks([1, 5, 10, 25, 50, 100], ["1%", "5%", "10%", "25%", "50%", "100%"])
+    plt.xticks(list(range(len(ALL_BUDGETS))), [BUDGET_LABELS[b] for b in ALL_BUDGETS])
     plt.ylim(0.0, 1.0)
     plt.grid(True, which="both", linestyle="--", alpha=0.7)
     plt.legend(frameon=True, facecolor="white", edgecolor="none", fontsize=10, loc="lower right")
@@ -374,6 +399,116 @@ def main():
         plt.savefig(gflops_plot_path, bbox_inches="tight")
         print(f"Generated plot: {gflops_plot_path}")
         plt.close()
+    
+    # Generate summary table image matching PPT styling
+    fig, ax = plt.subplots(figsize=(11.0, 4.5), dpi=300)
+    ax.axis('off')
+    
+    headers = ["Method", "IoU\n@ 10%", "IoU\n@ 100%", "Dice\n@ 10%", "Dice\n@ 100%", "GFLOPs\n(Total)", "VRAM\n(MB)", "Key Findings"]
+    rows = []
+    
+    target_models = [
+        "prithvi_fcn_linear_probe",
+        "prithvi_fcn_lora_r8",
+        "prithvi_fcn_lora_r16",
+        "prithvi_fcn_full_ft",
+        "prithvi_fcn_randomized",
+        "unet_scratch"
+    ]
+    
+    profiles = {
+        "prithvi_fcn_linear_probe": "Cheapest compute;\nlower accuracy.",
+        "prithvi_fcn_lora_r8": "Good balance;\nslight variance.",
+        "prithvi_fcn_lora_r16": "Best overall\n(Optimal trade-off)",
+        "prithvi_fcn_full_ft": "Costliest compute;\noverfits on low data.",
+        "prithvi_fcn_randomized": "No pretrained features;\nrandom init baseline.",
+        "unet_scratch": "Low VRAM;\nhigh training compute."
+    }
+    
+    for model in target_models:
+        if model not in data_dict:
+            continue
+            
+        budgets = data_dict[model]
+        
+        # Get mean IoU and Dice for 10% (0.10) and 100% (1.00)
+        iou_10 = np.mean(budgets[0.10]["burn_iou"]) * 100.0 if 0.10 in budgets else 0.0
+        iou_100 = np.mean(budgets[1.00]["burn_iou"]) * 100.0 if 1.00 in budgets else 0.0
+        dice_10 = np.mean(budgets[0.10]["burn_dice"]) * 100.0 if 0.10 in budgets else 0.0
+        dice_100 = np.mean(budgets[1.00]["burn_dice"]) * 100.0 if 1.00 in budgets else 0.0
+        
+        # GFLOPs
+        if model in model_gflops:
+            fwd, bwd = model_gflops[model]
+            total_gflops = fwd + bwd
+            gflops_str = f"{total_gflops:.1f}"
+        else:
+            gflops_str = "N/A"
+            
+        # VRAM
+        if model in model_vram and len(model_vram[model]) > 0:
+            vram_val = np.mean(model_vram[model])
+            vram_str = f"{vram_val:,.0f}"
+        else:
+            vram_str = "N/A"
+            
+        model_name_display = names.get(model, model)
+        model_name_display = model_name_display.replace(" + FCN Decoder", "")
+        if "Linear Probe" in model_name_display:
+            model_name_display = "Linear Probe"
+        if "LoRA (r=8)" in model_name_display:
+            model_name_display = "LoRA r=8"
+        if "LoRA (r=16)" in model_name_display:
+            model_name_display = "LoRA r=16"
+        if "Full FT" in model_name_display:
+            model_name_display = "Full FT"
+        if "Randomized" in model_name_display:
+            model_name_display = "Randomized Init"
+        if "UNet" in model_name_display:
+            model_name_display = "UNet (scratch)"
+        
+        rows.append([
+            model_name_display,
+            f"~{iou_10/100.0:.2f}" if iou_10 > 0 else "N/A",
+            f"~{iou_100/100.0:.2f}" if iou_100 > 0 else "N/A",
+            f"{dice_10/100.0:.2f}" if dice_10 > 0 else "N/A",
+            f"{dice_100/100.0:.2f}" if dice_100 > 0 else "N/A",
+            gflops_str,
+            vram_str,
+            profiles.get(model, "")
+        ])
+        
+    tbl = ax.table(
+        cellText=rows,
+        colLabels=headers,
+        cellLoc='center',
+        loc='center',
+        colWidths=[0.16, 0.10, 0.10, 0.10, 0.10, 0.11, 0.11, 0.22]
+    )
+    
+    tbl.auto_set_font_size(False)
+    tbl.set_fontsize(11)
+    
+    header_color = '#eb7a34' # Muted orange to match PPT
+    row_colors = ['#eaf1f8', '#d6e3f0'] # Alternating blue colors to match PPT
+    
+    for (row, col), cell in tbl.get_celld().items():
+        cell.set_height(0.18)
+        if row == 0:
+            cell.set_text_props(weight='bold', color='white', fontsize=12)
+            cell.set_facecolor(header_color)
+            cell.set_edgecolor('white')
+        else:
+            cell.set_facecolor(row_colors[row % 2])
+            cell.set_edgecolor('white')
+            # Bold the optimal row (LoRA r=16) like in PPT
+            if 'r=16' in rows[row-1][0]:
+                cell.set_text_props(weight='bold')
+                
+    summary_table_path = plots_dir / "summary_table.png"
+    plt.savefig(summary_table_path, bbox_inches='tight', dpi=300)
+    print(f"Generated plot: {summary_table_path}")
+    plt.close()
     
     print("\nAll evaluation figures successfully generated in results/plots/!")
 

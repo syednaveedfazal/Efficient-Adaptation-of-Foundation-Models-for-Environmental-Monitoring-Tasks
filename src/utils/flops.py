@@ -1,5 +1,19 @@
 import torch
+import torch.nn as nn
 from fvcore.nn import FlopCountAnalysis
+
+
+class _EncoderFeaturesWrapper(nn.Module):
+    """Wraps a PrithviViT encoder so that FlopCountAnalysis traces
+    forward_features() (the full-token segmentation path) instead of
+    forward() (the MAE masking path which drops 75% of tokens)."""
+    def __init__(self, encoder):
+        super().__init__()
+        self.encoder = encoder
+
+    def forward(self, x):
+        return self.encoder.forward_features(x)
+
 
 def get_model_training_gflops(model, adaptation_strategy: str, input_size=(1, 6, 512, 512)):
     """
@@ -18,7 +32,10 @@ def get_model_training_gflops(model, adaptation_strategy: str, input_size=(1, 6,
 
     # Check if the model has a separated backbone encoder
     if hasattr(model, "encoder") and model.encoder is not None:
-        encoder_analysis = FlopCountAnalysis(model.encoder, x)
+        # Wrap encoder to use forward_features (full-token path)
+        # instead of forward (MAE masking path with 75% token drop)
+        encoder_wrapper = _EncoderFeaturesWrapper(model.encoder)
+        encoder_analysis = FlopCountAnalysis(encoder_wrapper, x)
         encoder_analysis.unsupported_ops_warnings(False)
         fwd_encoder = encoder_analysis.total() / 1e9
         fwd_decoder = max(0.0, fwd_total - fwd_encoder)

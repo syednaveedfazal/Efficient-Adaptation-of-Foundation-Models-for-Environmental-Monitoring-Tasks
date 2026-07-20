@@ -13,19 +13,19 @@
     "total_gflops": 941.4794
   },
   "metrics": {
-    "loss": 0.336075097322464,
-    "mean_iou": 0.720352053642273,
-    "burn_iou": 0.4907946288585663,
-    "bg_iou": 0.9499096274375916,
-    "burn_precision": 0.7140394449234009,
-    "burn_recall": 0.6254082918167114,
-    "burn_dice": 0.6218249797821045,
-    "pixel_accuracy": 0.9544727206230164
+    "loss": 0.3334684371948242,
+    "mean_iou": 0.7181587219238281,
+    "burn_iou": 0.4886532425880432,
+    "bg_iou": 0.9476642608642578,
+    "burn_precision": 0.6901750564575195,
+    "burn_recall": 0.6407153606414795,
+    "burn_dice": 0.6211321949958801,
+    "pixel_accuracy": 0.9524356126785278
   },
   "hardware": {
     "gpu_name": "NVIDIA A40",
     "max_memory_allocated_mb": 8041.39,
     "max_memory_reserved_mb": 8778.0,
-    "training_duration_seconds": 483.82
+    "training_duration_seconds": 491.81
   }
 }

@@ -52,7 +52,7 @@ class PrithviFCNSegmentor(nn.Module):
         self,
         weights_path: str,
         num_classes:  int    = 2,
-        adaptation:   str    = "lora",   # "lora", "full_ft", or "linear_probe"
+        adaptation:   str    = "lora",   # "lora", "full_ft", "linear_probe", or "randomized"
         lora_rank:    int    = 8,
         lora_alpha:   int    = 8,
     ):
@@ -77,16 +77,19 @@ class PrithviFCNSegmentor(nn.Module):
             mlp_ratio         = 4.0,
         )
 
-        ckpt = torch.load(weights_path, map_location="cpu", weights_only=False)
-        state_dict = ckpt.get("model", ckpt) if isinstance(ckpt, dict) else ckpt
+        if adaptation != "randomized":
+            ckpt = torch.load(weights_path, map_location="cpu", weights_only=False)
+            state_dict = ckpt.get("model", ckpt) if isinstance(ckpt, dict) else ckpt
 
-        # Drop positional embedding buffers
-        state_dict = {k: v for k, v in state_dict.items() if "pos_embed" not in k}
+            # Drop positional embedding buffers
+            state_dict = {k: v for k, v in state_dict.items() if "pos_embed" not in k}
 
-        missing, unexpected = full_model.load_state_dict(state_dict, strict=False)
-        print(f"[Prithvi-FCN] Loaded {weights_path}")
-        print(f"               Missing keys  : {len(missing)}")
-        print(f"               Unexpected keys: {len(unexpected)}")
+            missing, unexpected = full_model.load_state_dict(state_dict, strict=False)
+            print(f"[Prithvi-FCN] Loaded {weights_path}")
+            print(f"               Missing keys  : {len(missing)}")
+            print(f"               Unexpected keys: {len(unexpected)}")
+        else:
+            print(f"[Prithvi-FCN] Randomized mode — using randomly initialised weights")
 
         self.encoder = full_model.encoder
 
@@ -106,7 +109,7 @@ class PrithviFCNSegmentor(nn.Module):
             for name, param in self.encoder.named_parameters():
                 param.requires_grad = "lora_" in name
 
-        elif adaptation == "full_ft":
+        elif adaptation == "full_ft" or adaptation == "randomized":
             # Full fine-tuning: all backbone layers are fully trainable
             for param in self.encoder.parameters():
                 param.requires_grad = True
