@@ -150,7 +150,10 @@ def main():
         "prithvi_fcn_full_ft":   "#ff7f0e", 
         "prithvi_fcn_linear_probe":"#8c564b", 
         "prithvi_fcn_randomized":"#e41a1c",
-        "dinov2_finetune":       "#2ca02c"
+        "dinov2_fcn_lora_r8":      "#2ca02c",
+        "dinov2_fcn_lora_r16":     "#1b7837",
+        "dinov2_fcn_full_ft":      "#98df8a",
+        "dinov2_fcn_linear_probe": "#556b2f",
     }
     markers = {
         "unet_scratch":          "o", 
@@ -163,7 +166,10 @@ def main():
         "prithvi_fcn_full_ft":   "x", 
         "prithvi_fcn_linear_probe":"*", 
         "prithvi_fcn_randomized":"D",
-        "dinov2_finetune":       "^"
+        "dinov2_fcn_lora_r8":      "^",
+        "dinov2_fcn_lora_r16":     "h",
+        "dinov2_fcn_full_ft":      "P",
+        "dinov2_fcn_linear_probe": "X",
     }
     names = {
         "unet_scratch":          "UNet (Baseline)", 
@@ -176,7 +182,10 @@ def main():
         "prithvi_fcn_full_ft":   "Prithvi + Full FT + FCN Decoder", 
         "prithvi_fcn_linear_probe":"Prithvi + Linear Probe + FCN Decoder", 
         "prithvi_fcn_randomized":"Prithvi + Randomized + FCN Decoder",
-        "dinov2_finetune":       "DINOv2 (Fine-tuned)"
+        "dinov2_fcn_lora_r8":      "DINOv2 + LoRA (r=8) + FCN Decoder",
+        "dinov2_fcn_lora_r16":     "DINOv2 + LoRA (r=16) + FCN Decoder",
+        "dinov2_fcn_full_ft":      "DINOv2 + Full FT + FCN Decoder",
+        "dinov2_fcn_linear_probe": "DINOv2 + Linear Probe + FCN Decoder",
     }
     
     for model, budgets_dict in data_dict.items():
@@ -224,6 +233,65 @@ def main():
     iou_plot_path = plots_dir / "iou_vs_budget.png"
     plt.savefig(iou_plot_path, bbox_inches="tight")
     print(f"Generated plot: {iou_plot_path}")
+    plt.close()
+
+    # Plot A2: Grouped Bar Chart of Burn IoU vs Label Budget (1%, 10%, 25%, 100%)
+    plt.figure(figsize=(10, 6), dpi=300)
+    bar_budgets = [0.01, 0.10, 0.25, 1.00]
+    bar_labels = ["1% (5)", "10% (54)", "25% (135)", "100% (540)"]
+
+    models_to_plot = [
+        "prithvi_fcn_linear_probe",
+        "prithvi_fcn_lora_r8",
+        "prithvi_fcn_lora_r16",
+        "prithvi_fcn_full_ft",
+        "unet_scratch",
+        "prithvi_fcn_randomized",
+        "prithvi_seg_lora_r8",
+        "prithvi_seg_lora_r16",
+        "prithvi_unet_lora_r8",
+        "prithvi_unet_lora_r16",
+        "dinov2_fcn_linear_probe",
+        "dinov2_fcn_lora_r8",
+        "dinov2_fcn_lora_r16",
+        "dinov2_fcn_full_ft",
+    ]
+    active_models = [m for m in models_to_plot if m in data_dict]
+
+    x = np.arange(len(bar_budgets))
+    width = 0.8 / max(1, len(active_models))
+
+    for i, model in enumerate(active_models):
+        means_iou = []
+        stds_iou = []
+        for b in bar_budgets:
+            if b in data_dict[model]:
+                ious = data_dict[model][b]["burn_iou"]
+                means_iou.append(np.mean(ious))
+                stds_iou.append(np.std(ious) if len(ious) > 1 else 0.0)
+            else:
+                means_iou.append(0.0)
+                stds_iou.append(0.0)
+
+        offset = (i - (len(active_models) - 1) / 2) * width
+        plt.bar(
+            x + offset, means_iou, width, yerr=stds_iou,
+            label=names.get(model, model), color=colors.get(model, "#7f7f7f"),
+            edgecolor="none", capsize=3, error_kw=dict(elinewidth=1.0)
+        )
+
+    plt.title("Data Efficiency: Burn-Scar Segmentation IoU by Label Budget (Grouped)", fontsize=12, fontweight="bold", pad=12)
+    plt.xlabel("Label Budget (% of Training Scenes)", fontsize=10, fontweight="bold")
+    plt.ylabel("Validation Burn-Scar IoU", fontsize=10, fontweight="bold")
+    plt.xticks(x, bar_labels)
+    plt.ylim(0.0, 1.0)
+    plt.grid(True, axis="y", linestyle="--", alpha=0.7)
+    plt.legend(frameon=True, facecolor="white", edgecolor="none", fontsize=9, loc="upper left")
+    plt.tight_layout()
+
+    iou_bar_path = plots_dir / "iou_bar_vs_budget.png"
+    plt.savefig(iou_bar_path, bbox_inches="tight")
+    print(f"Generated plot: {iou_bar_path}")
     plt.close()
     
     # Plot B: Dice vs Label Budget
@@ -273,6 +341,42 @@ def main():
     dice_plot_path = plots_dir / "dice_vs_budget.png"
     plt.savefig(dice_plot_path, bbox_inches="tight")
     print(f"Generated plot: {dice_plot_path}")
+    plt.close()
+
+    # Plot B2: Grouped Bar Chart of Dice vs Label Budget (1%, 10%, 25%, 100%)
+    plt.figure(figsize=(10, 6), dpi=300)
+
+    for i, model in enumerate(active_models):
+        means_dice = []
+        stds_dice = []
+        for b in bar_budgets:
+            if b in data_dict[model]:
+                dices = data_dict[model][b]["burn_dice"]
+                means_dice.append(np.mean(dices))
+                stds_dice.append(np.std(dices) if len(dices) > 1 else 0.0)
+            else:
+                means_dice.append(0.0)
+                stds_dice.append(0.0)
+
+        offset = (i - (len(active_models) - 1) / 2) * width
+        plt.bar(
+            x + offset, means_dice, width, yerr=stds_dice,
+            label=names.get(model, model), color=colors.get(model, "#7f7f7f"),
+            edgecolor="none", capsize=3, error_kw=dict(elinewidth=1.0)
+        )
+
+    plt.title("Dice/F1 Score by Label Budget (Grouped)", fontsize=12, fontweight="bold", pad=12)
+    plt.xlabel("Label Budget (% of Training Scenes)", fontsize=10, fontweight="bold")
+    plt.ylabel("Validation Burn-Scar Dice Coefficient", fontsize=10, fontweight="bold")
+    plt.xticks(x, bar_labels)
+    plt.ylim(0.0, 1.0)
+    plt.grid(True, axis="y", linestyle="--", alpha=0.7)
+    plt.legend(frameon=True, facecolor="white", edgecolor="none", fontsize=9, loc="upper left")
+    plt.tight_layout()
+
+    dice_bar_path = plots_dir / "dice_bar_vs_budget.png"
+    plt.savefig(dice_bar_path, bbox_inches="tight")
+    print(f"Generated plot: {dice_bar_path}")
     plt.close()
 
     # Plot C: Parameter Efficiency vs. Performance

@@ -46,17 +46,32 @@ class PrithviFCNDecoder(nn.Module):
 
 class PrithviFCNSegmentor(nn.Module):
     """
-    Prithvi-EO-2.0-300M backbone with LoRA + FCN decoder.
+    Prithvi-EO-2.0-300M backbone with selectable adaptation strategy + FCN decoder.
+
+    Weight initialisation and adaptation strategy are independent axes:
+      * ``randomized=False`` (default)  → load pretrained weights from *weights_path*
+      * ``randomized=True``             → keep random PyTorch init (no checkpoint)
+
+      * ``adaptation="lora"``           → inject LoRA adapters; freeze backbone
+      * ``adaptation="full_ft"``        → all backbone params trainable
+      * ``adaptation="linear_probe"``   → freeze backbone entirely
     """
     def __init__(
         self,
         weights_path: str,
         num_classes:  int    = 2,
-        adaptation:   str    = "lora",   # "lora", "full_ft", "linear_probe", or "randomized"
+        adaptation:   str    = "lora",   # "lora", "full_ft", "linear_probe"
+        randomized:   bool   = False,    # True → skip pretrained weights
         lora_rank:    int    = 8,
         lora_alpha:   int    = 8,
     ):
         super().__init__()
+
+        # ── Backward compatibility ────────────────────────────────────────
+        # Legacy configs may pass adaptation="randomized" (≡ randomized + full_ft)
+        if adaptation == "randomized":
+            randomized = True
+            adaptation = "full_ft"
 
         # ── 1. Load Prithvi backbone ──────────────────────────────────────
         prithvi_mod = _load_prithvi_mae_module()
@@ -77,7 +92,7 @@ class PrithviFCNSegmentor(nn.Module):
             mlp_ratio         = 4.0,
         )
 
-        if adaptation != "randomized":
+        if not randomized:
             ckpt = torch.load(weights_path, map_location="cpu", weights_only=False)
             state_dict = ckpt.get("model", ckpt) if isinstance(ckpt, dict) else ckpt
 
@@ -109,7 +124,7 @@ class PrithviFCNSegmentor(nn.Module):
             for name, param in self.encoder.named_parameters():
                 param.requires_grad = "lora_" in name
 
-        elif adaptation == "full_ft" or adaptation == "randomized":
+        elif adaptation == "full_ft":
             # Full fine-tuning: all backbone layers are fully trainable
             for param in self.encoder.parameters():
                 param.requires_grad = True

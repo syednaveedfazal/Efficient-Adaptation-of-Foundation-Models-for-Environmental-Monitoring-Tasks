@@ -23,7 +23,7 @@ import torch
 import time
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor
-from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.loggers import WandbLogger, CSVLogger
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pathlib import Path
 
@@ -128,7 +128,13 @@ def main():
     # ------------------------------------------------------------------
     # Logger
     # ------------------------------------------------------------------
-    logger = None
+    # Use CSVLogger, not the default TensorBoardLogger. TensorBoard's atomic
+    # save() writes a temp file in the system tmpdir then os.rename()s it onto
+    # the (NFS) project dir; on this cluster /tmp is a local disk, so that
+    # cross-device rename fails with OSError: [Errno 18]. CSVLogger writes its
+    # metrics.csv directly to save_dir (NFS) — no cross-device move. We still
+    # need *a* logger because the LearningRateMonitor callback requires one.
+    logger = CSVLogger(save_dir="results/logs", name=run_name)
     if cfg.get("use_wandb", False):
         logger = WandbLogger(
             project = cfg.get("wandb_project", "burn-scar"),

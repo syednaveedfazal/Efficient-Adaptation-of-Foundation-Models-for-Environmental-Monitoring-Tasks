@@ -27,9 +27,9 @@ MODELS = {
         "description": "Prithvi-EO-2.0 300M — geospatial foundation model (Syed's primary backbone)",
     },
     "dinov2": {
-        "repo_id": "facebook/dinov2-base",
+        "repo_id": "facebook/dinov2-large",
         "repo_type": "model",
-        "description": "DINOv2-Base — generic ViT baseline",
+        "description": "DINOv2-Large (ViT-L/14, ~300M) — generic ViT baseline, matches Prithvi-300M scale",
     },
 }
 

@@ -1,0 +1,31 @@
+{
+  "experiment": {
+    "model_name": "dinov2_fcn_full_ft",
+    "config": "configs/dinov2_fcn_full_ft.yaml",
+    "split_json": "data/splits/seed_42/split_010pct.json",
+    "label_budget": 0.1,
+    "seed": 42,
+    "trainable_params": 306727938,
+    "total_params": 306727938,
+    "pct_trainable_params": 100.0,
+    "fwd_gflops": 418.1307,
+    "bwd_gflops": 836.2615,
+    "total_gflops": 1254.3922
+  },
+  "metrics": {
+    "loss": 0.24089641869068146,
+    "mean_iou": 0.78239905834198,
+    "burn_iou": 0.6085410118103027,
+    "bg_iou": 0.9562571048736572,
+    "burn_precision": 0.7519537806510925,
+    "burn_recall": 0.7627365589141846,
+    "burn_dice": 0.7426195740699768,
+    "pixel_accuracy": 0.9610465168952942
+  },
+  "hardware": {
+    "gpu_name": "NVIDIA A100-SXM4-80GB",
+    "max_memory_allocated_mb": 10578.44,
+    "max_memory_reserved_mb": 11156.0,
+    "training_duration_seconds": 1074.75
+  }
+}

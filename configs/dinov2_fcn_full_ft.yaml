@@ -1,0 +1,32 @@
+seed: 42
+use_wandb: false
+wandb_project: burn-scar
+
+data:
+  raw_dir:     data/raw/hls_burn_scars       # training/ and validation/ live here
+  stats_path:  data/processed/stats.json
+  val_json:    data/splits/val_scenes.json
+  batch_size:  4                             # DINOv2-base ViT @ 518 — safe for 16 GB VRAM
+  num_workers: 4                             # matches --cpus-per-task=4 in ActivateGPU.sh
+
+model:
+  name: dinov2_fcn_full_ft
+  params:
+    num_classes:  2                          # 0 = not burned, 1 = burn scar
+    adaptation:   full_ft
+    # DINOv2 is RGB-native: only the 3 RGB bands (Red,Green,Blue = HLS idx 2,1,0) are used.
+
+loss:
+  ce_weight:     0.5
+  dice_weight:   0.5
+  class_weights: [1.0, 8.0]                 # burn scar ~8x rarer -> upweight
+
+optimizer:
+  lr:           5.0e-5                      # lower lr for stable full fine-tuning of the ViT backbone
+  weight_decay: 1.0e-2
+
+trainer:
+  max_epochs:     100
+  patience:       15                        # early stopping on val/burn_iou
+  checkpoint_dir: results/checkpoints/
+  precision:      16-mixed                  # AMP — reduces VRAM ~30%

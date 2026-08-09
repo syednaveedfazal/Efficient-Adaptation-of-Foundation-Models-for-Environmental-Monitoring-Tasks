@@ -13,6 +13,7 @@ from src.models.unet import UNet
 from src.models.prithvi_seg import PrithviSegmentor
 from src.models.prithvi_unet import PrithviUNetSegmentor
 from src.models.prithvi_fcn import PrithviFCNSegmentor
+from src.models.dinov2_fcn import DinoV2FCNSegmentor
 
 MODEL_REGISTRY: dict = {
     "unet_scratch":        UNet,
@@ -25,6 +26,14 @@ MODEL_REGISTRY: dict = {
     "prithvi_fcn_full_ft": PrithviFCNSegmentor,
     "prithvi_fcn_linear_probe": PrithviFCNSegmentor,
     "prithvi_fcn_randomized":   PrithviFCNSegmentor,
+    "prithvi_fcn_randomized_lora_r8":      PrithviFCNSegmentor,
+    "prithvi_fcn_randomized_lora_r16":     PrithviFCNSegmentor,
+    "prithvi_fcn_randomized_full_ft":      PrithviFCNSegmentor,
+    "prithvi_fcn_randomized_linear_probe": PrithviFCNSegmentor,
+    "dinov2_fcn_lora_r8":       DinoV2FCNSegmentor,
+    "dinov2_fcn_lora_r16":      DinoV2FCNSegmentor,
+    "dinov2_fcn_full_ft":       DinoV2FCNSegmentor,
+    "dinov2_fcn_linear_probe":  DinoV2FCNSegmentor,
 }
 
 
