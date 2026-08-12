@@ -1,0 +1,34 @@
+seed: 42
+use_wandb: false
+wandb_project: burn-scar
+
+data:
+  raw_dir:     data/raw/hls_burn_scars       # training/ and validation/ live here
+  stats_path:  data/processed/stats.json
+  val_json:    data/splits/val_scenes.json
+  batch_size:  4                             # 512×512 ViT
+  num_workers: 0                             # 0 for Windows local safety
+
+model:
+  name: prithvi_fcn_vpt_shallow
+  params:
+    weights_path:   models/pretrained/prithvi/Prithvi_EO_V2_300M.pt
+    num_classes:    2                        # 0 = not burned, 1 = burn scar
+    adaptation:     vpt_shallow
+    num_prompts:    10
+    prompt_dropout: 0.0
+
+loss:
+  ce_weight:     0.5
+  dice_weight:   0.5
+  class_weights: [1.0, 8.0]                 # burn scar ~8× rarer → upweight
+
+optimizer:
+  lr:           2.0e-4
+  weight_decay: 1.0e-2
+
+trainer:
+  max_epochs:     100
+  patience:       15                        # early stopping on val/burn_iou
+  checkpoint_dir: results/checkpoints/
+  precision:      16-mixed                  # AMP — reduces VRAM ~30%

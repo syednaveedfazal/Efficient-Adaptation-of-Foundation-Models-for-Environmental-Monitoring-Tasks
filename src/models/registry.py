@@ -25,6 +25,8 @@ MODEL_REGISTRY: dict = {
     "prithvi_fcn_lora_r16":PrithviFCNSegmentor,
     "prithvi_fcn_full_ft": PrithviFCNSegmentor,
     "prithvi_fcn_linear_probe": PrithviFCNSegmentor,
+    "prithvi_fcn_vpt_shallow":  PrithviFCNSegmentor,
+    "prithvi_fcn_vpt_deep":     PrithviFCNSegmentor,
     "prithvi_fcn_randomized":   PrithviFCNSegmentor,
     "prithvi_fcn_randomized_lora_r8":      PrithviFCNSegmentor,
     "prithvi_fcn_randomized_lora_r16":     PrithviFCNSegmentor,

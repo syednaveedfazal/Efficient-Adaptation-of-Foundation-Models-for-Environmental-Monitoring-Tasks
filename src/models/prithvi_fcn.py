@@ -2,8 +2,10 @@ import sys
 import importlib.util
 from pathlib import Path
 
+import numpy as np
 import torch
 import torch.nn as nn
+from einops import rearrange
 
 from peft import LoraConfig, inject_adapter_in_model
 
@@ -55,23 +57,30 @@ class PrithviFCNSegmentor(nn.Module):
       * ``adaptation="lora"``           → inject LoRA adapters; freeze backbone
       * ``adaptation="full_ft"``        → all backbone params trainable
       * ``adaptation="linear_probe"``   → freeze backbone entirely
+      * ``adaptation="vpt_shallow"``    → learnable visual prompt tokens at input; freeze backbone
+      * ``adaptation="vpt_deep"``       → learnable visual prompt tokens at every layer; freeze backbone
     """
     def __init__(
         self,
         weights_path: str,
         num_classes:  int    = 2,
-        adaptation:   str    = "lora",   # "lora", "full_ft", "linear_probe"
+        adaptation:   str    = "lora",   # "lora", "full_ft", "linear_probe", "vpt", "vpt_shallow", "vpt_deep"
         randomized:   bool   = False,    # True → skip pretrained weights
         lora_rank:    int    = 8,
         lora_alpha:   int    = 8,
+        num_prompts:  int    = 10,
+        prompt_dropout: float = 0.0,
     ):
         super().__init__()
+        self.adaptation = adaptation
+        self.num_prompts = num_prompts
 
         # ── Backward compatibility ────────────────────────────────────────
         # Legacy configs may pass adaptation="randomized" (≡ randomized + full_ft)
         if adaptation == "randomized":
             randomized = True
             adaptation = "full_ft"
+            self.adaptation = "full_ft"
 
         # ── 1. Load Prithvi backbone ──────────────────────────────────────
         prithvi_mod = _load_prithvi_mae_module()
@@ -134,6 +143,22 @@ class PrithviFCNSegmentor(nn.Module):
             for param in self.encoder.parameters():
                 param.requires_grad = False
 
+        elif adaptation in ("vpt", "vpt_shallow"):
+            # Visual Prompt Tuning (Shallow): Learnable prompts at input level only
+            for param in self.encoder.parameters():
+                param.requires_grad = False
+            self.prompt_embeddings = nn.Parameter(torch.zeros(1, num_prompts, 1024))
+            nn.init.normal_(self.prompt_embeddings, std=0.02)
+            self.prompt_dropout = nn.Dropout(prompt_dropout)
+
+        elif adaptation == "vpt_deep":
+            # Visual Prompt Tuning (Deep): Learnable prompts at every transformer layer
+            for param in self.encoder.parameters():
+                param.requires_grad = False
+            self.prompt_embeddings = nn.Parameter(torch.zeros(len(self.encoder.blocks), num_prompts, 1024))
+            nn.init.normal_(self.prompt_embeddings, std=0.02)
+            self.prompt_dropout = nn.Dropout(prompt_dropout)
+
         else:
             raise ValueError(f"Unknown adaptation strategy: {adaptation}")
 
@@ -155,12 +180,48 @@ class PrithviFCNSegmentor(nn.Module):
         Returns:
             (B, num_classes, H, W) raw logits
         """
-        feats = self.encoder.forward_features(x)
-        
-        # Take the final block output (index 23)
-        final_feat = [feats[23]]
+        if self.adaptation in ("vpt", "vpt_shallow", "vpt_deep"):
+            B = x.shape[0]
+            if len(x.shape) == 4 and self.encoder.patch_embed.input_size[0] == 1:
+                x_in = x.unsqueeze(2)
+            else:
+                x_in = x
+            sample_shape = x_in.shape[-3:]
 
-        # Reshape to spatial representation: (B, 1024, 32, 32)
-        spatial_feat = self.encoder.prepare_features_for_image_model(final_feat)[0]
+            # 1. Patch embeddings
+            patch_tokens = self.encoder.patch_embed(x_in)
+            pos_embed = self.encoder.interpolate_pos_encoding(sample_shape)
+            patch_tokens = patch_tokens + pos_embed[:, 1:, :]
 
-        return self.decoder(spatial_feat)
+            # 2. CLS token
+            cls_token = self.encoder.cls_token + pos_embed[:, :1, :]
+            cls_tokens = cls_token.expand(B, -1, -1)
+
+            # 3. Apply VPT forward pass
+            if self.adaptation in ("vpt", "vpt_shallow"):
+                prompts = self.prompt_dropout(self.prompt_embeddings).expand(B, -1, -1)
+                tokens = torch.cat((cls_tokens, prompts, patch_tokens), dim=1)
+                for block in self.encoder.blocks:
+                    tokens = block(tokens)
+                tokens = self.encoder.norm(tokens)
+            else:  # vpt_deep
+                tokens = torch.cat((cls_tokens, self.prompt_dropout(self.prompt_embeddings[0]).expand(B, -1, -1), patch_tokens), dim=1)
+                for i, block in enumerate(self.encoder.blocks):
+                    if i > 0:
+                        layer_prompts = self.prompt_dropout(self.prompt_embeddings[i]).expand(B, -1, -1)
+                        tokens = torch.cat((tokens[:, :1, :], layer_prompts, tokens[:, (1 + self.num_prompts):, :]), dim=1)
+                    tokens = block(tokens)
+                tokens = self.encoder.norm(tokens)
+
+            # 4. Extract spatial patch tokens (skipping CLS and prompt tokens)
+            spatial_tokens = tokens[:, (1 + self.num_prompts):, :]
+            h = int(np.sqrt(spatial_tokens.shape[1]))
+            spatial_feat = rearrange(spatial_tokens, "b (h w) c -> b c h w", h=h, w=h)
+            return self.decoder(spatial_feat)
+
+        else:
+            feats = self.encoder.forward_features(x)
+            final_feat = [feats[23]]
+            spatial_feat = self.encoder.prepare_features_for_image_model(final_feat)[0]
+            return self.decoder(spatial_feat)
+
