@@ -21,7 +21,7 @@
 # ---------------------------------------------------------------------------
 set -euo pipefail
 
-ADAPTATIONS="${ADAPTATIONS:-lora_r8 lora_r16 linear_probe full_ft}"
+ADAPTATIONS="${ADAPTATIONS:-lora_r8 lora_r16 linear_probe full_ft vpt}"
 BUDGETS="${BUDGETS:-001 010 025 100}"
 SEEDS="${SEEDS:-42 123 456}"
 
@@ -34,6 +34,7 @@ declare -A CONFIG_FOR=(
     [lora_r16]="configs/dinov2_fcn_lora_r16.yaml"
     [linear_probe]="configs/dinov2_fcn_linear_probe.yaml"
     [full_ft]="configs/dinov2_fcn_full_ft.yaml"
+    [vpt]="configs/dinov2_fcn_vpt.yaml"
 )
 
 job_ids=()

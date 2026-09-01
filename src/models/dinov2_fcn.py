@@ -42,6 +42,7 @@ import timm
 from safetensors.torch import load_file
 
 from peft import LoraConfig, inject_adapter_in_model
+from src.models.adaptation import DinoV2VPTWrapper
 
 
 DINOV2_DIR = Path(__file__).resolve().parents[2] / "models" / "pretrained" / "dinov2"
@@ -199,11 +200,12 @@ class DinoV2FCNSegmentor(nn.Module):
 
     def __init__(
         self,
-        num_classes: int = 2,
-        adaptation:  str = "lora",
-        lora_rank:   int = 8,
-        lora_alpha:  int = 8,
+        num_classes:    int = 2,
+        adaptation:     str = "lora",
+        lora_rank:      int = 8,
+        lora_alpha:     int = 8,
         rgb_indices=DEFAULT_RGB_INDICES,
+        vpt_num_tokens: int = 10,
     ):
         super().__init__()
 
@@ -231,6 +233,12 @@ class DinoV2FCNSegmentor(nn.Module):
         elif adaptation == "linear_probe":
             for param in self.encoder.parameters():
                 param.requires_grad = False
+
+        elif adaptation == "vpt":
+            # VPT-Deep: freeze backbone, wrap with learnable prompt tokens
+            for param in self.encoder.parameters():
+                param.requires_grad = False
+            self.encoder = DinoV2VPTWrapper(self.encoder, num_tokens=vpt_num_tokens)
 
         else:
             raise ValueError(f"Unknown adaptation strategy: {adaptation}")

@@ -49,8 +49,9 @@ def get_model_training_gflops(model, adaptation_strategy: str, input_size=(1, 6,
         # Linear Probing: Encoder is fully frozen. Only decoder requires backward pass.
         # Decoder: 2x forward FLOPs (1x activation gradients, 1x weight gradients).
         bwd_gflops = 2.0 * fwd_decoder
-    elif adaptation_strategy == "lora":
-        # LoRA: Encoder weights frozen, but activations backpropagated to reach adapters.
+    elif adaptation_strategy in ("lora", "vpt"):
+        # LoRA / VPT: Encoder weights frozen, but activations backpropagated
+        # to reach adapters (LoRA) or prompt tokens (VPT).
         # Encoder: 1x forward FLOPs (activation gradients only).
         # Decoder: 2x forward FLOPs (activation + weight gradients).
         bwd_gflops = (1.0 * fwd_encoder) + (2.0 * fwd_decoder)

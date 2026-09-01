@@ -1,0 +1,28 @@
+{
+  "experiment": {
+    "model_name": "eurosat_prithvi_lora_r16",
+    "config": "configs/eurosat_prithvi_lora_r16.yaml",
+    "split_json": "data/splits/eurosat/seed_456/split_025pct.json",
+    "label_budget": 0.25,
+    "seed": 456,
+    "trainable_params": 6301706,
+    "total_params": 310188042,
+    "pct_trainable_params": 2.0316,
+    "fwd_gflops": 61.0905,
+    "bwd_gflops": 317.8561,
+    "total_gflops": 378.9466
+  },
+  "metrics": {
+    "loss": 0.08121201395988464,
+    "accuracy": 0.9818518757820129,
+    "macro_f1": 0.10319627821445465,
+    "macro_precision": 0.10414831340312958,
+    "macro_recall": 0.10229765623807907
+  },
+  "hardware": {
+    "gpu_name": "NVIDIA A100-SXM4-80GB",
+    "max_memory_allocated_mb": 8337.29,
+    "max_memory_reserved_mb": 8566.0,
+    "training_duration_seconds": 1357.41
+  }
+}

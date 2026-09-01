@@ -30,8 +30,8 @@ from pathlib import Path
 # Make src/ importable when running from project root
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from src.datasets.burn_scar import BurnScarDataModule
-from src.training.module import SegmentationModule
+from src.datasets.registry import build_datamodule
+from src.training.module import build_module
 
 
 def main():
@@ -91,36 +91,37 @@ def main():
     # ------------------------------------------------------------------
     # Data
     # ------------------------------------------------------------------
-    dm = BurnScarDataModule(
-        raw_dir     = cfg["data"]["raw_dir"],
-        stats_path  = cfg["data"]["stats_path"],
-        split_json  = args.split_json,
-        val_json    = cfg["data"].get("val_json"),
-        batch_size  = cfg["data"]["batch_size"],
-        num_workers = cfg["data"]["num_workers"],
-    )
+    # Dataset registry picks BurnScar vs EuroSAT from cfg["data"]["name"]
+    # (legacy flat burn-scar blocks default to burn_scar).
+    dm = build_datamodule(cfg["data"], split_json=args.split_json)
 
     # ------------------------------------------------------------------
-    # Model  (registry picks the right class from cfg["model"]["name"])
+    # Model + task  (registries pick model class and Lightning module)
     # ------------------------------------------------------------------
-    model = SegmentationModule(cfg)
+    # build_module selects Segmentation vs Classification from cfg["task"]
+    # (defaults to "segmentation" so existing configs are unchanged).
+    model = build_module(cfg)
 
     # ------------------------------------------------------------------
     # Callbacks
     # ------------------------------------------------------------------
     ckpt_dir = Path(cfg["trainer"]["checkpoint_dir"]) / run_name
+    # Metric to monitor/checkpoint on — segmentation uses val/burn_iou (default),
+    # classification uses val/accuracy (set in the EuroSAT configs).
+    monitor_metric = cfg["trainer"].get("monitor_metric", "val/burn_iou")
+    monitor_mode   = cfg["trainer"].get("monitor_mode", "max")
     callbacks = [
         ModelCheckpoint(
             dirpath   = str(ckpt_dir),
-            filename  = "{epoch:02d}-{val/burn_iou:.4f}",
-            monitor   = "val/burn_iou",
-            mode      = "max",
+            filename  = "{epoch:02d}-{" + monitor_metric + ":.4f}",
+            monitor   = monitor_metric,
+            mode      = monitor_mode,
             save_top_k = 1,
         ),
         EarlyStopping(
-            monitor  = "val/burn_iou",
+            monitor  = monitor_metric,
             patience = cfg["trainer"]["patience"],
-            mode     = "max",
+            mode     = monitor_mode,
         ),
         LearningRateMonitor(logging_interval="epoch"),
     ]
@@ -259,8 +260,13 @@ def main():
             except Exception as e:
                 print(f"[WARN] Failed to clean up checkpoint directory {ckpt_dir}: {e}")
 
-        from plot_results import main as plot_results
-        plot_results()
+        # Auto-plot only for burn-scar (plot_results aggregates burn-scar
+        # segmentation metrics). EuroSAT plots are built by scripts/plot_results.py
+        # with a --dataset filter after the sweep.
+        dataset_name = cfg.get("data", {}).get("name", "burn_scar")
+        if dataset_name == "burn_scar":
+            from plot_results import main as plot_results
+            plot_results()
 
 
 if __name__ == "__main__":

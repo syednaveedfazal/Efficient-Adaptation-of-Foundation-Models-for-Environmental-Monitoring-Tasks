@@ -61,8 +61,27 @@ class CombinedLoss(nn.Module):
                self.dice_w * self.dice(logits, targets)
 
 
-def build_loss(cfg: dict) -> CombinedLoss:
-    """Instantiate loss from the 'loss' section of a config dict."""
+def build_loss(cfg: dict):
+    """
+    Instantiate loss from the 'loss' section of a config dict.
+
+    Dispatches on the optional 'type' field:
+      - "combined" (default): CE + Dice for segmentation (needs class_weights,
+        ce_weight, dice_weight) — unchanged behavior.
+      - "cross_entropy": plain CrossEntropy for single-label classification
+        (optional class_weights and label_smoothing).
+    """
+    loss_type = cfg.get("type", "combined")
+
+    if loss_type == "cross_entropy":
+        cw = cfg.get("class_weights")
+        weight = torch.tensor(cw, dtype=torch.float32) if cw else None
+        return nn.CrossEntropyLoss(
+            weight          = weight,
+            label_smoothing = cfg.get("label_smoothing", 0.0),
+        )
+
+    # Default: segmentation combined CE + Dice
     cw = torch.tensor(cfg["class_weights"], dtype=torch.float32)
     return CombinedLoss(
         ce_weight    = cfg["ce_weight"],

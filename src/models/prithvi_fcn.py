@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 
 from peft import LoraConfig, inject_adapter_in_model
+from src.models.adaptation import PrithviVPTWrapper
 
 
 def _load_prithvi_mae_module():
@@ -59,11 +60,12 @@ class PrithviFCNSegmentor(nn.Module):
     def __init__(
         self,
         weights_path: str,
-        num_classes:  int    = 2,
-        adaptation:   str    = "lora",   # "lora", "full_ft", "linear_probe"
-        randomized:   bool   = False,    # True → skip pretrained weights
-        lora_rank:    int    = 8,
-        lora_alpha:   int    = 8,
+        num_classes:    int    = 2,
+        adaptation:     str    = "lora",   # "lora", "full_ft", "linear_probe", "vpt"
+        randomized:     bool   = False,    # True → skip pretrained weights
+        lora_rank:      int    = 8,
+        lora_alpha:     int    = 8,
+        vpt_num_tokens: int    = 10,
     ):
         super().__init__()
 
@@ -133,6 +135,12 @@ class PrithviFCNSegmentor(nn.Module):
             # Linear probing: completely freeze the backbone
             for param in self.encoder.parameters():
                 param.requires_grad = False
+
+        elif adaptation == "vpt":
+            # VPT-Deep: freeze backbone, wrap with learnable prompt tokens
+            for param in self.encoder.parameters():
+                param.requires_grad = False
+            self.encoder = PrithviVPTWrapper(self.encoder, num_tokens=vpt_num_tokens)
 
         else:
             raise ValueError(f"Unknown adaptation strategy: {adaptation}")

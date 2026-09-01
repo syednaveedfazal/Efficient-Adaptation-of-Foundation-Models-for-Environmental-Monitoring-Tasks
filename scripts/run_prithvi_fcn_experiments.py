@@ -30,11 +30,12 @@ def parse_args():
             "prithvi_fcn_lora_r8",
             "prithvi_fcn_lora_r16",
             "prithvi_fcn_full_ft",
-            "prithvi_fcn_randomized",
+            "prithvi_fcn_vpt",
             "prithvi_fcn_randomized_lora_r8",
             "prithvi_fcn_randomized_lora_r16",
             "prithvi_fcn_randomized_linear_probe",
-            "prithvi_fcn_randomized_full_ft"
+            "prithvi_fcn_randomized_full_ft",
+            "prithvi_fcn_randomized_vpt"
         ],
         help="Model config basenames (without .yaml) to sweep"
     )

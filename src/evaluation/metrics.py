@@ -123,3 +123,52 @@ def compute_metrics(
         "burn_dice": dices[1],
         "pixel_accuracy": pixel_acc,
     }
+
+
+# ----------------------------------------------------------------------------
+# Classification metrics (EuroSAT land-cover, single label per image)
+# ----------------------------------------------------------------------------
+
+def classification_metrics(
+    logits:      torch.Tensor,
+    targets:     torch.Tensor,
+    num_classes: int = 10,
+) -> dict:
+    """
+    Image-level classification metrics from raw logits.
+
+    Args:
+        logits:  (B, num_classes) raw class scores
+        targets: (B,) long tensor of ground-truth class indices
+    Returns:
+        {
+            "accuracy":        overall top-1 accuracy,
+            "macro_f1":        unweighted mean per-class F1,
+            "macro_precision": unweighted mean per-class precision,
+            "macro_recall":    unweighted mean per-class recall,
+        }
+    All values are class-frequency-agnostic (macro) so a dominant class cannot
+    inflate the score — the classification analogue of using IoU/Dice (not
+    pixel accuracy) for the imbalanced segmentation task.
+    """
+    preds = logits.argmax(dim=1)
+    accuracy = (preds == targets).float().mean()
+
+    precisions, recalls, f1s = [], [], []
+    for c in range(num_classes):
+        pred_c = (preds   == c)
+        true_c = (targets == c)
+        tp = (pred_c & true_c).sum().float()
+        fp = (pred_c & ~true_c).sum().float()
+        fn = (~pred_c & true_c).sum().float()
+        p = tp / (tp + fp + 1e-6)
+        r = tp / (tp + fn + 1e-6)
+        f = 2 * p * r / (p + r + 1e-6)
+        precisions.append(p); recalls.append(r); f1s.append(f)
+
+    return {
+        "accuracy":        accuracy,
+        "macro_f1":        torch.stack(f1s).mean(),
+        "macro_precision": torch.stack(precisions).mean(),
+        "macro_recall":    torch.stack(recalls).mean(),
+    }

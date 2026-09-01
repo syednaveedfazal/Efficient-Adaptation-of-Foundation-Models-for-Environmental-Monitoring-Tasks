@@ -14,6 +14,9 @@ from src.models.prithvi_seg import PrithviSegmentor
 from src.models.prithvi_unet import PrithviUNetSegmentor
 from src.models.prithvi_fcn import PrithviFCNSegmentor
 from src.models.dinov2_fcn import DinoV2FCNSegmentor
+from src.models.prithvi_cls import PrithviClassifier
+from src.models.dinov2_cls import DinoV2Classifier
+from src.models.cnn import CNNClassifier
 
 MODEL_REGISTRY: dict = {
     "unet_scratch":        UNet,
@@ -30,10 +33,26 @@ MODEL_REGISTRY: dict = {
     "prithvi_fcn_randomized_lora_r16":     PrithviFCNSegmentor,
     "prithvi_fcn_randomized_full_ft":      PrithviFCNSegmentor,
     "prithvi_fcn_randomized_linear_probe": PrithviFCNSegmentor,
+    "prithvi_fcn_randomized_vpt":          PrithviFCNSegmentor,
+    "prithvi_fcn_vpt":          PrithviFCNSegmentor,
     "dinov2_fcn_lora_r8":       DinoV2FCNSegmentor,
     "dinov2_fcn_lora_r16":      DinoV2FCNSegmentor,
     "dinov2_fcn_full_ft":       DinoV2FCNSegmentor,
     "dinov2_fcn_linear_probe":  DinoV2FCNSegmentor,
+    "dinov2_fcn_vpt":           DinoV2FCNSegmentor,
+    # EuroSAT land-cover classification (10 classes)
+    "eurosat_prithvi_lora_r8":      PrithviClassifier,
+    "eurosat_prithvi_lora_r16":     PrithviClassifier,
+    "eurosat_prithvi_full_ft":      PrithviClassifier,
+    "eurosat_prithvi_linear_probe": PrithviClassifier,
+    "eurosat_prithvi_vpt":          PrithviClassifier,
+    "eurosat_dinov2_lora_r8":       DinoV2Classifier,
+    "eurosat_dinov2_lora_r16":      DinoV2Classifier,
+    "eurosat_dinov2_full_ft":       DinoV2Classifier,
+    "eurosat_dinov2_linear_probe":  DinoV2Classifier,
+    "eurosat_dinov2_vpt":           DinoV2Classifier,
+    # From-scratch CNN baseline (no foundation model)
+    "eurosat_cnn_scratch":          CNNClassifier,
 }
 
 

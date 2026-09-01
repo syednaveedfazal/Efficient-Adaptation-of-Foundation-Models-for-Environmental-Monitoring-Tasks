@@ -1,0 +1,28 @@
+{
+  "experiment": {
+    "model_name": "eurosat_dinov2_vpt",
+    "config": "configs/eurosat_dinov2_vpt.yaml",
+    "split_json": "data/splits/eurosat/seed_123/split_100pct.json",
+    "label_budget": 1.0,
+    "seed": 123,
+    "trainable_params": 256010,
+    "total_params": 304623626,
+    "pct_trainable_params": 0.084,
+    "fwd_gflops": 417.9211,
+    "bwd_gflops": 417.9225,
+    "total_gflops": 835.8436
+  },
+  "metrics": {
+    "loss": 0.042468585073947906,
+    "accuracy": 0.9905555844306946,
+    "macro_f1": 0.1036415845155716,
+    "macro_precision": 0.10414831340312958,
+    "macro_recall": 0.10316063463687897
+  },
+  "hardware": {
+    "gpu_name": "NVIDIA A100-SXM4-80GB",
+    "max_memory_allocated_mb": 27590.92,
+    "max_memory_reserved_mb": 30182.0,
+    "training_duration_seconds": 20243.24
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "experiment": {
+    "model_name": "eurosat_dinov2_lora_r8",
+    "config": "configs/eurosat_dinov2_lora_r8.yaml",
+    "split_json": "data/splits/eurosat/seed_42/split_025pct.json",
+    "label_budget": 0.25,
+    "seed": 42,
+    "trainable_params": 3155978,
+    "total_params": 307523594,
+    "pct_trainable_params": 1.0263,
+    "fwd_gflops": 419.2084,
+    "bwd_gflops": 419.2098,
+    "total_gflops": 838.4182
+  },
+  "metrics": {
+    "loss": 0.06631115078926086,
+    "accuracy": 0.9868518710136414,
+    "macro_f1": 0.10338598489761353,
+    "macro_precision": 0.10402980446815491,
+    "macro_recall": 0.10278759896755219
+  },
+  "hardware": {
+    "gpu_name": "NVIDIA A100-SXM4-80GB",
+    "max_memory_allocated_mb": 42576.45,
+    "max_memory_reserved_mb": 42840.0,
+    "training_duration_seconds": 5772.76
+  }
+}

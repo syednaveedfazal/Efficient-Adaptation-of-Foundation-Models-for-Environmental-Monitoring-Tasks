@@ -11,7 +11,7 @@ import pytorch_lightning as pl
 
 from src.models.registry import build_model
 from src.training.losses import build_loss
-from src.evaluation.metrics import compute_metrics      # lives in evaluation/
+from src.evaluation.metrics import compute_metrics, classification_metrics  # lives in evaluation/
 
 
 class SegmentationModule(pl.LightningModule):
@@ -75,3 +75,72 @@ class SegmentationModule(pl.LightningModule):
             eta_min = opt["lr"] * 0.01,
         )
         return {"optimizer": optimizer, "lr_scheduler": scheduler}
+
+
+class ClassificationModule(pl.LightningModule):
+    """
+    Shared Lightning module for single-label image classification (EuroSAT).
+
+    Mirrors SegmentationModule but for (imgs, labels) batches with (B, C) logits:
+      - Model instantiation via registry
+      - CrossEntropy loss (loss.type == "cross_entropy")
+      - accuracy / macro_f1 / macro_precision / macro_recall logging
+      - AdamW + CosineAnnealing LR schedule (identical to SegmentationModule)
+    """
+
+    def __init__(self, cfg: dict):
+        super().__init__()
+        self.save_hyperparameters(cfg)
+        self.cfg = cfg
+        self.model     = build_model(cfg["model"])
+        self.criterion = build_loss(cfg["loss"])
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.model(x)
+
+    def _shared_step(self, batch: tuple, stage: str) -> torch.Tensor:
+        imgs, labels = batch
+        logits  = self(imgs)                                              # (B, C)
+        loss    = self.criterion(logits, labels)
+        metrics = classification_metrics(logits, labels, self.cfg["model"]["params"]["num_classes"])
+
+        on_step = (stage == "train")
+        self.log(f"{stage}/loss",            loss,                       on_step=on_step, on_epoch=True, prog_bar=True)
+        self.log(f"{stage}/accuracy",        metrics["accuracy"],        on_step=False,   on_epoch=True, prog_bar=True)
+        self.log(f"{stage}/macro_f1",        metrics["macro_f1"],        on_step=False,   on_epoch=True, prog_bar=True)
+        self.log(f"{stage}/macro_precision", metrics["macro_precision"], on_step=False,   on_epoch=True)
+        self.log(f"{stage}/macro_recall",    metrics["macro_recall"],    on_step=False,   on_epoch=True)
+        return loss
+
+    def training_step(self, batch, _):
+        return self._shared_step(batch, "train")
+
+    def validation_step(self, batch, _):
+        self._shared_step(batch, "val")
+
+    def configure_optimizers(self):
+        opt = self.cfg["optimizer"]
+        optimizer = torch.optim.AdamW(
+            self.parameters(),
+            lr           = opt["lr"],
+            weight_decay = opt["weight_decay"],
+        )
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer,
+            T_max   = self.cfg["trainer"]["max_epochs"],
+            eta_min = opt["lr"] * 0.01,
+        )
+        return {"optimizer": optimizer, "lr_scheduler": scheduler}
+
+
+def build_module(cfg: dict) -> pl.LightningModule:
+    """
+    Task factory: pick the Lightning module from cfg['task'].
+    Defaults to 'segmentation' so existing burn-scar configs are unchanged.
+    """
+    task = cfg.get("task", "segmentation")
+    if task == "classification":
+        return ClassificationModule(cfg)
+    if task == "segmentation":
+        return SegmentationModule(cfg)
+    raise ValueError(f"Unknown task '{task}' (expected 'segmentation' or 'classification')")

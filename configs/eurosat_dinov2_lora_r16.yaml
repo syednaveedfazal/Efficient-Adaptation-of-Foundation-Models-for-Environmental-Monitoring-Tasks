@@ -1,0 +1,37 @@
+seed: 42
+use_wandb: false
+wandb_project: eurosat
+task: classification
+
+data:
+  name: eurosat
+  params:
+    raw_dir:     data/raw/eurosat
+    stats_path:  data/processed/eurosat_stats.json
+    val_json:    data/splits/eurosat/val_scenes.json
+    batch_size:  32
+    num_workers: 4
+
+model:
+  name: eurosat_dinov2_lora_r16
+  params:
+    num_classes:  10
+    adaptation:   lora
+    lora_rank:    16
+    lora_alpha:   16
+
+loss:
+  type: cross_entropy
+  label_smoothing: 0.0
+
+optimizer:
+  lr:           2.0e-4
+  weight_decay: 1.0e-2
+
+trainer:
+  max_epochs:     50
+  patience:       10
+  checkpoint_dir: results/checkpoints/
+  precision:      16-mixed
+  monitor_metric: val/accuracy
+  monitor_mode:   max

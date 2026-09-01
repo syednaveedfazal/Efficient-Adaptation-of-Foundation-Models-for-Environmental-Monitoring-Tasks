@@ -1,0 +1,35 @@
+seed: 42
+use_wandb: false
+wandb_project: eurosat
+task: classification
+
+data:
+  name: eurosat
+  params:
+    raw_dir:     data/raw/eurosat
+    stats_path:  data/processed/eurosat_stats.json
+    val_json:    data/splits/eurosat/val_scenes.json
+    batch_size:  128                    # 64x64 CNN — large batch is cheap
+    num_workers: 4
+
+model:
+  name: eurosat_cnn_scratch            # key in src/models/registry.py
+  params:                              # passed to CNNClassifier.__init__()
+    in_channels:  6                    # all 6 HLS-order bands (from scratch, no band drop)
+    num_classes:  10                   # EuroSAT land-cover classes
+    base_filters: 64                   # ResNet-18-style: 64 -> 128 -> 256 -> 512
+
+loss:
+  type: cross_entropy                  # no class_weights — EuroSAT is ~balanced
+
+optimizer:
+  lr:           1.0e-3                 # higher LR for a small from-scratch CNN
+  weight_decay: 1.0e-4
+
+trainer:
+  max_epochs:     50
+  patience:       10
+  checkpoint_dir: results/checkpoints/
+  precision:      16-mixed
+  monitor_metric: val/accuracy
+  monitor_mode:   max

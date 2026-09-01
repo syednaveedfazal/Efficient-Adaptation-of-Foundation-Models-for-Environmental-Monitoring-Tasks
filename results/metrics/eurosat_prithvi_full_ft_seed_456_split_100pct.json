@@ -1,0 +1,28 @@
+{
+  "experiment": {
+    "model_name": "eurosat_prithvi_full_ft",
+    "config": "configs/eurosat_prithvi_full_ft.yaml",
+    "split_json": "data/splits/eurosat/seed_456/split_100pct.json",
+    "label_budget": 1.0,
+    "seed": 456,
+    "trainable_params": 303896586,
+    "total_params": 303896586,
+    "pct_trainable_params": 100.0,
+    "fwd_gflops": 59.8511,
+    "bwd_gflops": 119.7023,
+    "total_gflops": 179.5534
+  },
+  "metrics": {
+    "loss": 0.06455706804990768,
+    "accuracy": 0.987407386302948,
+    "macro_f1": 0.10347571223974228,
+    "macro_precision": 0.10414831340312958,
+    "macro_recall": 0.10284089297056198
+  },
+  "hardware": {
+    "gpu_name": "NVIDIA A100-SXM4-80GB",
+    "max_memory_allocated_mb": 11332.71,
+    "max_memory_reserved_mb": 12012.0,
+    "training_duration_seconds": 5784.5
+  }
+}

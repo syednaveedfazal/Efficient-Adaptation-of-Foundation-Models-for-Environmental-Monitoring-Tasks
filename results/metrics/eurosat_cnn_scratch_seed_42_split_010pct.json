@@ -1,0 +1,28 @@
+{
+  "experiment": {
+    "model_name": "eurosat_cnn_scratch",
+    "config": "configs/eurosat_cnn_scratch.yaml",
+    "split_json": "data/splits/eurosat/seed_42/split_010pct.json",
+    "label_budget": 0.1,
+    "seed": 42,
+    "trainable_params": 11175690,
+    "total_params": 11175690,
+    "pct_trainable_params": 100.0,
+    "fwd_gflops": 142.9566,
+    "bwd_gflops": 285.9131,
+    "total_gflops": 428.8697
+  },
+  "metrics": {
+    "loss": 0.2289590835571289,
+    "accuracy": 0.9390740990638733,
+    "macro_f1": 0.11486931890249252,
+    "macro_precision": 0.11790943145751953,
+    "macro_recall": 0.11230770498514175
+  },
+  "hardware": {
+    "gpu_name": "NVIDIA A100-SXM4-80GB",
+    "max_memory_allocated_mb": 1392.81,
+    "max_memory_reserved_mb": 1766.0,
+    "training_duration_seconds": 768.75
+  }
+}
