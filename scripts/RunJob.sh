@@ -73,6 +73,9 @@ ARGS=(--config "$CONFIG")
 [ -n "$RESUME" ]      && ARGS+=(--resume "$RESUME")
 [ -n "$SEED" ]        && ARGS+=(--seed "$SEED")
 [ -n "$DELETE_CKPT" ] && ARGS+=(--delete_ckpt)
+[ -n "$MAX_EPOCHS" ]  && ARGS+=(--max_epochs "$MAX_EPOCHS")
+[ -n "$OUT_DIR" ]     && ARGS+=(--out_dir "$OUT_DIR")
+[ -n "$EXTRA_ARGS" ]  && ARGS+=($EXTRA_ARGS)
 
 echo "Starting: python -u scripts/train.py ${ARGS[*]}"
 python -u scripts/train.py "${ARGS[@]}"

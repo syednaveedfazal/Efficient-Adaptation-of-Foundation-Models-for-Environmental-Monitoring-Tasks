@@ -53,6 +53,16 @@ def main():
                         type=int,
                         default=None,
                         help="Override training and dataset seed")
+    parser.add_argument("--max_epochs",
+                        type=int,
+                        default=None,
+                        help="Override max_epochs from config")
+    parser.add_argument("--out_dir",
+                        default="results/metrics",
+                        help="Directory to save exported metrics JSON")
+    parser.add_argument("--ckpt_dir",
+                        default=None,
+                        help="Override checkpoint directory from config")
     parser.add_argument("--delete_ckpt",
                         action="store_true",
                         help="Delete checkpoints folder after training to conserve space")
@@ -105,7 +115,8 @@ def main():
     # ------------------------------------------------------------------
     # Callbacks
     # ------------------------------------------------------------------
-    ckpt_dir = Path(cfg["trainer"]["checkpoint_dir"]) / run_name
+    base_ckpt_dir = args.ckpt_dir if args.ckpt_dir is not None else cfg["trainer"]["checkpoint_dir"]
+    ckpt_dir = Path(base_ckpt_dir) / run_name
     # Metric to monitor/checkpoint on — segmentation uses val/burn_iou (default),
     # classification uses val/accuracy (set in the EuroSAT configs).
     monitor_metric = cfg["trainer"].get("monitor_metric", "val/burn_iou")
@@ -146,7 +157,7 @@ def main():
     # Trainer
     # ------------------------------------------------------------------
     trainer = pl.Trainer(
-        max_epochs        = cfg["trainer"]["max_epochs"],
+        max_epochs        = args.max_epochs if args.max_epochs is not None else cfg["trainer"]["max_epochs"],
         accelerator       = "auto",
         devices           = "auto",
         callbacks         = callbacks,
@@ -179,7 +190,7 @@ def main():
         val_results = trainer.validate(model, datamodule=dm)
 
     if val_results:
-        metrics_dir = Path("results/metrics")
+        metrics_dir = Path(args.out_dir)
         metrics_dir.mkdir(parents=True, exist_ok=True)
 
         res = val_results[0]
@@ -264,7 +275,7 @@ def main():
         # segmentation metrics). EuroSAT plots are built by scripts/plot_results.py
         # with a --dataset filter after the sweep.
         dataset_name = cfg.get("data", {}).get("name", "burn_scar")
-        if dataset_name == "burn_scar":
+        if dataset_name == "burn_scar" and args.out_dir == "results/metrics":
             from plot_results import main as plot_results
             plot_results()
 
