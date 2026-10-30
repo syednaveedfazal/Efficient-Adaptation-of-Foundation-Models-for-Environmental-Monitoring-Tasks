@@ -255,6 +255,31 @@ def main():
             "metrics": clean_metrics,
             "hardware": gpu_stats
         }
+
+        # Add SCOPE-specific accounting if present
+        if hasattr(model.model, "get_token_counts"):
+            attn_counts, mlp_counts, exit_rate = model.model.get_token_counts()
+            if attn_counts and mlp_counts:
+                tokens_attn_mean = float(torch.tensor(attn_counts, dtype=torch.float32).mean().item())
+                tokens_mlp_mean = float(torch.tensor(mlp_counts, dtype=torch.float32).mean().item())
+                from src.utils.flops import count_encoder_flops
+                encoder_gflops = count_encoder_flops(attn_counts, mlp_counts)
+            else:
+                tokens_attn_mean = 1025.0
+                tokens_mlp_mean = 1025.0
+                encoder_gflops = fwd_gflops
+            export_data["metrics"]["tokens_attn_mean"] = round(tokens_attn_mean, 2)
+            export_data["metrics"]["tokens_mlp_mean"] = round(tokens_mlp_mean, 2)
+            export_data["metrics"]["exit_rate"] = round(float(exit_rate), 4)
+            export_data["metrics"]["encoder_gflops_inference"] = round(float(encoder_gflops), 4)
+
+            model_params = cfg.get("model", {}).get("params", {})
+            export_data["experiment"]["scope"] = {
+                k: model_params[k] for k in (
+                    "share_frac", "gate_enabled", "gate_is_random", "gate_keep_ratio",
+                    "exit_enabled", "nbr_refine", "self_distill"
+                ) if k in model_params
+            }
         
         out_path = metrics_dir / f"{run_name}.json"
         with open(out_path, "w") as f:

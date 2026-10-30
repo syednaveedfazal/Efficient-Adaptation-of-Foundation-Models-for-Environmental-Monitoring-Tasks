@@ -23,3 +23,13 @@
   - Peak allocated VRAM: 6,029.12 MB (~6.03 GB); Peak reserved VRAM: 6,312.00 MB (~6.31 GB).
   - Val burn IoU at epoch 0: 0.4490, mean IoU: 0.6956.
 
+
+## Phase 2 & 3: Implementation & Unit Testing
+- **Implementation**:
+  - Implemented `src/models/scope.py` with `patch_stats` (un-normalizing, covariance, logdet, NBR stats, z-scored prior features), Stage 1 `CovarianceTokenSharing` (heterogeneity scoring with log-Euclidean distance, token reduction, and lossless unshare), Stage 2 `ScopeGateBlock` (DyT-style Gumbel-Sigmoid routing with target rate regularizer and eval top-k gather/scatter), Stage 3 `ConceptProbe` & early exit (auxiliary soft CE loss on patch burn fractions, confident token exit with DToP context retention, logit overwriting), and Extras (`nbr_refine`, `self_distill`).
+  - Implemented `count_encoder_flops()` and SCOPE analytical FLOP accounting in `src/utils/flops.py`.
+  - Registered `prithvi_fcn_scope` in `src/models/registry.py` and wired auxiliary loss in `src/training/module.py`.
+  - Created 5 SCOPE configs in `configs/scope/`: `b1_random.yaml`, `s1_share.yaml`, `s2_gate.yaml`, `s3_exit.yaml`, and `s4_full.yaml`.
+- **Unit Tests**:
+  - Created `tests/test_scope.py` covering all 7 required tests: identity check vs plain LoRA (max diff = 0.0), unshare round trip, patch statistics verification against NumPy, gate routing and gradient flow to $W_g$ and $w_p$, static output shapes across different inputs, monotonic encoder GFLOPs scaling, and early exit behavior.
+  - All 7 tests passed cleanly via `pytest` in 26.21s.

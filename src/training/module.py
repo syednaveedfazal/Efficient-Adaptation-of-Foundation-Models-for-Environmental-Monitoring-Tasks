@@ -41,8 +41,14 @@ class SegmentationModule(pl.LightningModule):
 
     def _shared_step(self, batch: tuple, stage: str) -> torch.Tensor:
         imgs, masks = batch
+        if hasattr(self.model, "set_current_targets") and stage == "train":
+            self.model.set_current_targets(masks)
         logits  = self(imgs)                                              # (B, C, H, W)
         loss    = self.criterion(logits, masks)
+        if hasattr(self.model, "get_aux_loss") and stage == "train":
+            aux_loss = self.model.get_aux_loss(masks=masks)
+            loss = loss + aux_loss
+            self.log(f"{stage}/aux_loss", aux_loss, on_step=True, on_epoch=True)
         metrics = compute_metrics(logits, masks, self.cfg["model"]["params"]["num_classes"])
 
         on_step = (stage == "train")

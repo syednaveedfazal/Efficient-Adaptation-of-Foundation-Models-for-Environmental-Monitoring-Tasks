@@ -17,6 +17,7 @@ from src.models.dinov2_fcn import DinoV2FCNSegmentor
 from src.models.prithvi_cls import PrithviClassifier
 from src.models.dinov2_cls import DinoV2Classifier
 from src.models.cnn import CNNClassifier
+from src.models.scope import ScopePrithviFCNSegmentor
 
 MODEL_REGISTRY: dict = {
     "unet_scratch":        UNet,
@@ -35,6 +36,7 @@ MODEL_REGISTRY: dict = {
     "prithvi_fcn_randomized_linear_probe": PrithviFCNSegmentor,
     "prithvi_fcn_randomized_vpt":          PrithviFCNSegmentor,
     "prithvi_fcn_vpt":          PrithviFCNSegmentor,
+    "prithvi_fcn_scope":        ScopePrithviFCNSegmentor,
     "dinov2_fcn_lora_r8":       DinoV2FCNSegmentor,
     "dinov2_fcn_lora_r16":      DinoV2FCNSegmentor,
     "dinov2_fcn_full_ft":       DinoV2FCNSegmentor,
