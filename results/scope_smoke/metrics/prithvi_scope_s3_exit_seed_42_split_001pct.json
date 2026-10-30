@@ -1,0 +1,43 @@
+{
+  "experiment": {
+    "model_name": "prithvi_scope_s3_exit",
+    "config": "configs/scope/s3_exit.yaml",
+    "split_json": "data/splits/seed_42/split_001pct.json",
+    "label_budget": 0.01,
+    "seed": 42,
+    "trainable_params": 5534846,
+    "total_params": 309421182,
+    "pct_trainable_params": 1.7888,
+    "fwd_gflops": 291.0848,
+    "bwd_gflops": 293.5039,
+    "total_gflops": 584.5887,
+    "scope": {
+      "share_frac": 0.5,
+      "gate_enabled": true,
+      "gate_is_random": false,
+      "gate_keep_ratio": 0.5,
+      "exit_enabled": true,
+      "nbr_refine": false
+    }
+  },
+  "metrics": {
+    "loss": 0.507868766784668,
+    "mean_iou": 0.5692113041877747,
+    "burn_iou": 0.2910095453262329,
+    "bg_iou": 0.8474131226539612,
+    "burn_precision": 0.3315335512161255,
+    "burn_recall": 0.7215436697006226,
+    "burn_dice": 0.4147052466869354,
+    "pixel_accuracy": 0.8608666062355042,
+    "tokens_attn_mean": 621.67,
+    "tokens_mlp_mean": 311.67,
+    "exit_rate": 0.0578,
+    "encoder_gflops_inference": 288.6657
+  },
+  "hardware": {
+    "gpu_name": "NVIDIA A100-SXM4-80GB",
+    "max_memory_allocated_mb": 3210.68,
+    "max_memory_reserved_mb": 3642.0,
+    "training_duration_seconds": 64.83
+  }
+}

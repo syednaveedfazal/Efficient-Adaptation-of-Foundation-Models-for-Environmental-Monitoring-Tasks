@@ -33,3 +33,24 @@
 - **Unit Tests**:
   - Created `tests/test_scope.py` covering all 7 required tests: identity check vs plain LoRA (max diff = 0.0), unshare round trip, patch statistics verification against NumPy, gate routing and gradient flow to $W_g$ and $w_p$, static output shapes across different inputs, monotonic encoder GFLOPs scaling, and early exit behavior.
   - All 7 tests passed cleanly via `pytest` in 26.21s.
+
+## Phase 4: Smoke Run Verification (split_001pct, 2 epochs)
+- **Setup**: Ran 6 smoke configurations on `split_001pct.json` (5 training scenes) for 2 epochs on NVIDIA A100-SXM4-80GB (`A100medium` partition, SLURM Job ID 280851).
+- **Checks & Findings**:
+  - All 6 configurations completed with exit code 0.
+  - Loss values were strictly stable and finite throughout training and validation (no `NaN` or `Inf`).
+  - In `s2_gate`, average gate activation is 50.08% ($321.0 / 641.0$), well within the target $[0.2, 0.9]$ range.
+  - In `s3_exit`, early exit rate was active and logged at 5.78% with tokens exiting after concept probes 8 & 16, reducing inference encoder compute from 722 GFLOPs to 288.7 GFLOPs.
+  - In `s1_share`, covariance token sharing alone reduced tokens to 641 while achieving 0.3035 Val Burn IoU (exceeding baseline 0.2885).
+  - All outputs safely exported to `results/scope_smoke/metrics/`.
+
+### Phase 4 Smoke Test Summary Table
+
+| Configuration | Val Burn IoU | Val Mean IoU | Val Loss | Attn Tokens | MLP Tokens | Exit Rate | Enc GFLOPs | Peak VRAM (MB) | Train Time (s) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| `prithvi_fcn_lora_r8` | 0.2885 | 0.4770 | 0.5482 | 1025.0 | 1025.0 | 0.00% | 317.1 | 3936.3 | 44.7s |
+| `prithvi_scope_b1_random` | 0.2094 | 0.4278 | 0.5178 | 1025.0 | 513.0 | 0.00% | 516.2 | 3766.6 | 54.7s |
+| `prithvi_scope_s1_share` | 0.3035 | 0.5098 | 0.5252 | 641.0 | 641.0 | 0.00% | 427.5 | 3080.9 | 45.4s |
+| `prithvi_scope_s2_gate` | 0.1514 | 0.3239 | 0.5903 | 641.0 | 321.0 | 0.00% | 298.7 | 3201.3 | 60.1s |
+| `prithvi_scope_s3_exit` | 0.2910 | 0.5692 | 0.5079 | 621.7 | 311.7 | 5.78% | 288.7 | 3210.7 | 64.8s |
+| `prithvi_scope_s4_full` | 0.2063 | 0.4555 | 0.5419 | 634.7 | 318.0 | 2.81% | 295.4 | 3236.2 | 63.4s |

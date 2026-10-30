@@ -57,6 +57,10 @@ def main():
                         type=int,
                         default=None,
                         help="Override max_epochs from config")
+    parser.add_argument("--batch_size",
+                        type=int,
+                        default=None,
+                        help="Override batch_size from config")
     parser.add_argument("--out_dir",
                         default="results/metrics",
                         help="Directory to save exported metrics JSON")
@@ -86,11 +90,16 @@ def main():
     if args.seed is not None:
         seed = args.seed
 
+    if args.batch_size is not None:
+        cfg["data"]["batch_size"] = args.batch_size
+
     cfg["seed"] = seed
     pl.seed_everything(seed, workers=True)
 
     # Derive a readable run name for checkpoints and W&B
     model_name = cfg["model"]["name"]
+    if model_name == "prithvi_fcn_scope":
+        model_name = f"prithvi_scope_{Path(args.config).stem}"
 
     if args.split_json:
         p = Path(args.split_json)
