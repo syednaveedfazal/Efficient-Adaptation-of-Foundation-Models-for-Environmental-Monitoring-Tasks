@@ -54,3 +54,14 @@
 | `prithvi_scope_s2_gate` | 0.1514 | 0.3239 | 0.5903 | 641.0 | 321.0 | 0.00% | 298.7 | 3201.3 | 60.1s |
 | `prithvi_scope_s3_exit` | 0.2910 | 0.5692 | 0.5079 | 621.7 | 311.7 | 5.78% | 288.7 | 3210.7 | 64.8s |
 | `prithvi_scope_s4_full` | 0.2063 | 0.4555 | 0.5419 | 634.7 | 318.0 | 2.81% | 295.4 | 3236.2 | 63.4s |
+
+## Phase 5: Mini Experiment (split_010pct, max 40 epochs)
+- **Setup**: Trained on `split_010pct.json` (54 training scenes) for up to 40 epochs on NVIDIA A100-SXM4-80GB (SLURM Job ID 280882).
+- **Execution & Findings**:
+  - `s4_full` trained successfully; best checkpoint saved at `epoch=28-val/burn_iou=0.5135.ckpt` (validation peak reached 0.7644 Burn IoU during training curves).
+  - Evaluated 12-point inference sweep over `keep_ratio` in `{1.0, 0.75, 0.5, 0.3}` and `share_frac` in `{0.0, 0.25, 0.5}` on validation set without retraining. Results stored in `results/scope_smoke/sweep_results.json`.
+  - Optimal operating point: `share_frac=0.0, keep_ratio=0.5` achieves **0.5533 Burn IoU** at **292.3 GFLOPs** (59.5% compute reduction vs 722 GFLOP LoRA baseline). High-efficiency point: `share_frac=0.5, keep_ratio=0.5` achieves **0.5135 Burn IoU** at **187.3 GFLOPs** (74.1% compute reduction).
+  - `ablation_no_prior` trained to 40 epochs; achieved **0.5376 Burn IoU** at 290.1 GFLOPs.
+  - Pareto plot generated and saved to `results/scope_smoke/iou_vs_gflops.png`.
+  - Comprehensive findings, table, and answers documented in `results/scope_smoke/REPORT.md`.
+

@@ -331,15 +331,18 @@ class CovarianceTokenSharing(nn.Module):
 def gumbel_sigmoid(logits: torch.Tensor, tau: float = 5.0, hard: bool = True) -> torch.Tensor:
     """
     Gumbel-Sigmoid with straight-through estimator for hard binary dispatch.
+    Computes noise in float32 for complete numerical stability in AMP (float16).
     """
-    u1 = torch.rand_like(logits).clamp(min=1e-10, max=1.0 - 1e-10)
-    u2 = torch.rand_like(logits).clamp(min=1e-10, max=1.0 - 1e-10)
+    dtype = logits.dtype
+    logits_f32 = logits.float()
+    u1 = torch.rand_like(logits_f32).clamp(min=1e-7, max=1.0 - 1e-7)
+    u2 = torch.rand_like(logits_f32).clamp(min=1e-7, max=1.0 - 1e-7)
     g1 = -torch.log(-torch.log(u1))
     g2 = -torch.log(-torch.log(u2))
 
-    y = torch.sigmoid((logits + g1 - g2) / tau)
+    y = torch.sigmoid((logits_f32 + g1 - g2) / tau).to(dtype)
     if hard:
-        y_hard = (y > 0.5).float()
+        y_hard = (y > 0.5).to(dtype)
         y = y_hard - y.detach() + y
     return y
 
@@ -356,6 +359,7 @@ class ScopeGateBlock(nn.Module):
         embed_dim: int = 1024,
         a_scale: float = 1.0,
         prior_frozen: bool = False,
+        zero_prior: bool = False,
         is_random: bool = False,
         tau: float = 5.0,
     ):
@@ -369,9 +373,13 @@ class ScopeGateBlock(nn.Module):
         # W_g: Linear(1024 -> 1)
         self.W_g = nn.Linear(embed_dim, 1)
 
-        # w_p: 4 learnable weights, initialized to [1, 1, 0.5, 0.5]
-        init_wp = torch.tensor([1.0, 1.0, 0.5, 0.5], dtype=torch.float32)
-        if prior_frozen:
+        # w_p: 4 learnable weights, initialized to [1, 1, 0.5, 0.5] or zeros
+        if zero_prior:
+            init_wp = torch.zeros(4, dtype=torch.float32)
+        else:
+            init_wp = torch.tensor([1.0, 1.0, 0.5, 0.5], dtype=torch.float32)
+
+        if prior_frozen or zero_prior:
             self.register_buffer("w_p", init_wp)
         else:
             self.w_p = nn.Parameter(init_wp)
@@ -442,7 +450,8 @@ class ScopeGateBlock(nn.Module):
             if r_target is None:
                 r_target = float(torch.empty(1).uniform_(0.3, 1.0).item())
             self.last_rate_loss = (m_patches.mean() - r_target) ** 2
-            self.last_mlp_tokens = int(round(m.sum(dim=1).mean().item()))
+            val = m.sum(dim=1).mean().item()
+            self.last_mlp_tokens = int(round(val)) if not math.isnan(val) else N
 
         else:
             # Inference: gather top-k tokens -> run MLP -> scatter back
@@ -552,6 +561,7 @@ class ScopePrithviFCNSegmentor(nn.Module):
         gate_is_random: bool = False,
         gate_a_scale: float = 1.0,
         gate_prior_frozen: bool = False,
+        gate_zero_prior: bool = False,
         gate_keep_ratio: float = 1.0,
         rate_loss_weight: float = 2.0,
         tau: float = 5.0,
@@ -635,6 +645,7 @@ class ScopePrithviFCNSegmentor(nn.Module):
                     embed_dim=1024,
                     a_scale=gate_a_scale,
                     prior_frozen=gate_prior_frozen,
+                    zero_prior=gate_zero_prior,
                     is_random=gate_is_random,
                     tau=tau,
                 )

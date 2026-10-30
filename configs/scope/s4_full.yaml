@@ -39,7 +39,8 @@ optimizer:
   weight_decay: 1.0e-2
 
 trainer:
-  max_epochs:     100
-  patience:       15
+  max_epochs:     40
+  patience:       10
   checkpoint_dir: results/checkpoints/
   precision:      16-mixed
+

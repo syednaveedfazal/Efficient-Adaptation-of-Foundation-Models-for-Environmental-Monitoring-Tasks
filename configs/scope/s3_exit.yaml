@@ -43,3 +43,4 @@ trainer:
   patience:       15
   checkpoint_dir: results/checkpoints/
   precision:      16-mixed
+

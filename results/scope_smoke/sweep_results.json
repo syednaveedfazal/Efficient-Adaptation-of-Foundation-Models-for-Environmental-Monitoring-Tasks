@@ -1,0 +1,218 @@
+[
+  {
+    "share_frac": 0.0,
+    "keep_ratio": 1.0,
+    "metrics": {
+      "loss": 0.3236984610557556,
+      "mean_iou": 0.5734668374061584,
+      "burn_iou": 0.332457035779953,
+      "bg_iou": 0.8144767880439758,
+      "burn_precision": 0.33992406725883484,
+      "burn_recall": 0.9712541699409485,
+      "burn_dice": 0.463051974773407,
+      "pixel_accuracy": 0.8309139013290405
+    },
+    "tokens_attn_mean": 1009.33,
+    "tokens_mlp_mean": 1009.33,
+    "exit_rate": 0.0264,
+    "encoder_gflops": 709.7774
+  },
+  {
+    "share_frac": 0.0,
+    "keep_ratio": 0.75,
+    "metrics": {
+      "loss": 0.2477046251296997,
+      "mean_iou": 0.698326051235199,
+      "burn_iou": 0.48519355058670044,
+      "bg_iou": 0.9114589691162109,
+      "burn_precision": 0.5166270732879639,
+      "burn_recall": 0.9183388948440552,
+      "burn_dice": 0.6227951049804688,
+      "pixel_accuracy": 0.9191617369651794
+    },
+    "tokens_attn_mean": 977.33,
+    "tokens_mlp_mean": 733.67,
+    "exit_rate": 0.083,
+    "encoder_gflops": 586.1981
+  },
+  {
+    "share_frac": 0.0,
+    "keep_ratio": 0.5,
+    "metrics": {
+      "loss": 0.373049795627594,
+      "mean_iou": 0.7523218989372253,
+      "burn_iou": 0.5532827973365784,
+      "bg_iou": 0.9513612985610962,
+      "burn_precision": 0.7260360717773438,
+      "burn_recall": 0.7134419083595276,
+      "burn_dice": 0.68742835521698,
+      "pixel_accuracy": 0.9561988711357117
+    },
+    "tokens_attn_mean": 611.33,
+    "tokens_mlp_mean": 306.33,
+    "exit_rate": 0.708,
+    "encoder_gflops": 292.2893
+  },
+  {
+    "share_frac": 0.0,
+    "keep_ratio": 0.3,
+    "metrics": {
+      "loss": 0.9090951681137085,
+      "mean_iou": 0.6282801628112793,
+      "burn_iou": 0.32384711503982544,
+      "bg_iou": 0.9327133893966675,
+      "burn_precision": 0.8442794680595398,
+      "burn_recall": 0.35189881920814514,
+      "burn_dice": 0.454173743724823,
+      "pixel_accuracy": 0.9359764456748962
+    },
+    "tokens_attn_mean": 510.67,
+    "tokens_mlp_mean": 154.33,
+    "exit_rate": 0.8867,
+    "encoder_gflops": 204.813
+  },
+  {
+    "share_frac": 0.25,
+    "keep_ratio": 1.0,
+    "metrics": {
+      "loss": 0.32820165157318115,
+      "mean_iou": 0.5693427324295044,
+      "burn_iou": 0.3289705812931061,
+      "bg_iou": 0.8097147941589355,
+      "burn_precision": 0.33607006072998047,
+      "burn_recall": 0.9726538062095642,
+      "burn_dice": 0.45837947726249695,
+      "pixel_accuracy": 0.8264566659927368
+    },
+    "tokens_attn_mean": 826.33,
+    "tokens_mlp_mean": 826.33,
+    "exit_rate": 0.0156,
+    "encoder_gflops": 566.216
+  },
+  {
+    "share_frac": 0.25,
+    "keep_ratio": 0.75,
+    "metrics": {
+      "loss": 0.2435537725687027,
+      "mean_iou": 0.7115164995193481,
+      "burn_iou": 0.5043309330940247,
+      "bg_iou": 0.9187021255493164,
+      "burn_precision": 0.5414866805076599,
+      "burn_recall": 0.9039000272750854,
+      "burn_dice": 0.6391701102256775,
+      "pixel_accuracy": 0.9257411360740662
+    },
+    "tokens_attn_mean": 786.33,
+    "tokens_mlp_mean": 590.33,
+    "exit_rate": 0.0925,
+    "encoder_gflops": 456.903
+  },
+  {
+    "share_frac": 0.25,
+    "keep_ratio": 0.5,
+    "metrics": {
+      "loss": 0.4293815791606903,
+      "mean_iou": 0.7433234453201294,
+      "burn_iou": 0.5358671545982361,
+      "bg_iou": 0.9507800936698914,
+      "burn_precision": 0.7398173213005066,
+      "burn_recall": 0.6688766479492188,
+      "burn_dice": 0.6714693903923035,
+      "pixel_accuracy": 0.9555376172065735
+    },
+    "tokens_attn_mean": 498.0,
+    "tokens_mlp_mean": 249.67,
+    "exit_rate": 0.7368,
+    "encoder_gflops": 231.4858
+  },
+  {
+    "share_frac": 0.25,
+    "keep_ratio": 0.3,
+    "metrics": {
+      "loss": 1.0249501466751099,
+      "mean_iou": 0.6028504371643066,
+      "burn_iou": 0.2768232524394989,
+      "bg_iou": 0.9288775324821472,
+      "burn_precision": 0.8400238156318665,
+      "burn_recall": 0.2966099679470062,
+      "burn_dice": 0.4025952219963074,
+      "pixel_accuracy": 0.9318875074386597
+    },
+    "tokens_attn_mean": 418.67,
+    "tokens_mlp_mean": 126.67,
+    "exit_rate": 0.8762,
+    "encoder_gflops": 161.7177
+  },
+  {
+    "share_frac": 0.5,
+    "keep_ratio": 1.0,
+    "metrics": {
+      "loss": 0.3353152573108673,
+      "mean_iou": 0.5626941323280334,
+      "burn_iou": 0.3230622410774231,
+      "bg_iou": 0.8023258447647095,
+      "burn_precision": 0.32986098527908325,
+      "burn_recall": 0.9731175899505615,
+      "burn_dice": 0.4506770372390747,
+      "pixel_accuracy": 0.8195253610610962
+    },
+    "tokens_attn_mean": 639.67,
+    "tokens_mlp_mean": 639.67,
+    "exit_rate": 0.0031,
+    "encoder_gflops": 426.5692
+  },
+  {
+    "share_frac": 0.5,
+    "keep_ratio": 0.75,
+    "metrics": {
+      "loss": 0.24837607145309448,
+      "mean_iou": 0.7056883573532104,
+      "burn_iou": 0.49769869446754456,
+      "bg_iou": 0.9136780500411987,
+      "burn_precision": 0.5371407270431519,
+      "burn_recall": 0.8986366391181946,
+      "burn_dice": 0.630975067615509,
+      "pixel_accuracy": 0.9208686947822571
+    },
+    "tokens_attn_mean": 618.0,
+    "tokens_mlp_mean": 464.0,
+    "exit_rate": 0.0563,
+    "encoder_gflops": 348.8217
+  },
+  {
+    "share_frac": 0.5,
+    "keep_ratio": 0.5,
+    "metrics": {
+      "loss": 0.4646870791912079,
+      "mean_iou": 0.7311432957649231,
+      "burn_iou": 0.513466477394104,
+      "bg_iou": 0.9488200545310974,
+      "burn_precision": 0.7426109313964844,
+      "burn_recall": 0.6358998417854309,
+      "burn_dice": 0.651748776435852,
+      "pixel_accuracy": 0.9536508321762085
+    },
+    "tokens_attn_mean": 415.0,
+    "tokens_mlp_mean": 208.33,
+    "exit_rate": 0.6578,
+    "encoder_gflops": 187.3182
+  },
+  {
+    "share_frac": 0.5,
+    "keep_ratio": 0.3,
+    "metrics": {
+      "loss": 1.0877325534820557,
+      "mean_iou": 0.5880432724952698,
+      "burn_iou": 0.24904751777648926,
+      "bg_iou": 0.9270391464233398,
+      "burn_precision": 0.8282096982002258,
+      "burn_recall": 0.2667115330696106,
+      "burn_dice": 0.3668788969516754,
+      "pixel_accuracy": 0.9299237728118896
+    },
+    "tokens_attn_mean": 325.67,
+    "tokens_mlp_mean": 99.0,
+    "exit_rate": 0.8328,
+    "encoder_gflops": 120.9774
+  }
+]

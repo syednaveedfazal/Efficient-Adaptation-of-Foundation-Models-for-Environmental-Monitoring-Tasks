@@ -278,3 +278,4 @@ def test_7_early_exit():
     assert abs(exit_rate - expected_exit_rate) < 1e-4, (
         f"Expected exit rate {expected_exit_rate}, got {exit_rate}"
     )
+
