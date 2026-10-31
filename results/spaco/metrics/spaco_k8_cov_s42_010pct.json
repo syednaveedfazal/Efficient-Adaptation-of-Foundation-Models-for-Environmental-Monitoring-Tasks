@@ -1,0 +1,114 @@
+{
+  "experiment": {
+    "model_name": "prithvi_fcn_spaco",
+    "config": "configs/spaco/spaco_k8_cov.yaml",
+    "split_json": "data/splits/seed_42/split_010pct.json",
+    "label_budget": 0.1,
+    "seed": 42,
+    "trainable_params": 5506074,
+    "total_params": 309392410,
+    "pct_trainable_params": 1.7796,
+    "fwd_gflops": 317.0508,
+    "bwd_gflops": 319.4699,
+    "total_gflops": 636.5207
+  },
+  "metrics": {
+    "loss": 0.2576204538345337,
+    "mean_iou": 0.7987079620361328,
+    "burn_iou": 0.6391300559043884,
+    "bg_iou": 0.9582857489585876,
+    "burn_precision": 0.8146542310714722,
+    "burn_recall": 0.7612735629081726,
+    "burn_dice": 0.7598111033439636,
+    "pixel_accuracy": 0.9613682627677917
+  },
+  "hardware": {
+    "gpu_name": "NVIDIA A100-SXM4-80GB",
+    "max_memory_allocated_mb": 5765.63,
+    "max_memory_reserved_mb": 6136.0,
+    "training_duration_seconds": 998.52
+  },
+  "training": {
+    "best_ckpt": "/home/s07akhan/EAFM/results/spaco/checkpoints/spaco_k8_cov_s42_010pct/epoch=42-val/burn_iou=0.6389.ckpt",
+    "epochs_run": 58,
+    "best_epoch": 42,
+    "early_stopped": false,
+    "train_seed": 42,
+    "val_json": "splits/val_dev.json",
+    "git_commit": null,
+    "config_resolved": {
+      "seed": 42,
+      "use_wandb": false,
+      "wandb_project": "burn-scar",
+      "data": {
+        "raw_dir": "data/raw/hls_burn_scars",
+        "stats_path": "data/processed/stats.json",
+        "val_json": "splits/val_dev.json",
+        "batch_size": 4,
+        "num_workers": 4
+      },
+      "model": {
+        "name": "prithvi_fcn_spaco",
+        "params": {
+          "weights_path": "models/pretrained/prithvi/Prithvi_EO_V2_300M.pt",
+          "num_classes": 2,
+          "adaptation": "spaco_lora",
+          "lora_rank": 8,
+          "lora_alpha": 8,
+          "lora_dropout": 0.0,
+          "spaco": {
+            "k": 8,
+            "basis": "cov",
+            "mode": "static",
+            "gamma_scope": "block",
+            "gamma_lr_mult": 10
+          }
+        }
+      },
+      "loss": {
+        "ce_weight": 0.5,
+        "dice_weight": 0.5,
+        "class_weights": [
+          1.0,
+          8.0
+        ]
+      },
+      "optimizer": {
+        "lr": 0.0002,
+        "weight_decay": 0.01
+      },
+      "trainer": {
+        "max_epochs": 100,
+        "patience": 15,
+        "checkpoint_dir": "results/spaco/checkpoints/",
+        "precision": "16-mixed"
+      }
+    },
+    "spaco_gamma": [
+      0.19219186902046204,
+      0.18468597531318665,
+      0.12702971696853638,
+      0.1692713350057602,
+      0.08948135375976562,
+      0.05031020566821098,
+      0.07612849771976471,
+      0.10400443524122238,
+      0.10783442109823227,
+      0.10771043598651886,
+      0.11276042461395264,
+      0.12057759612798691,
+      0.12223907560110092,
+      0.0657820776104927,
+      0.04299890249967575,
+      0.030909830704331398,
+      -0.026031238958239555,
+      -0.0030866118613630533,
+      -0.00019944972882512957,
+      -0.10524889081716537,
+      -0.07203371077775955,
+      -0.15523190796375275,
+      -0.10095953941345215,
+      -0.025119181722402573
+    ]
+  }
+}
