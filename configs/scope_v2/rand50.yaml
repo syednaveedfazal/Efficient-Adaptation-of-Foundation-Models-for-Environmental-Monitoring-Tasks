@@ -1,0 +1,54 @@
+# SCOPE v2 Experiment A: rand50. Shared recipe: warm start from LoRA r=8 (10%), Stage B, distill.
+seed: 42
+use_wandb: false
+wandb_project: burn-scar
+data:
+  raw_dir: data/raw/hls_burn_scars
+  stats_path: data/processed/stats.json
+  val_json: data/splits/val_scenes.json
+  batch_size: 4
+  num_workers: 4
+model:
+  name: prithvi_fcn_scope
+  params:
+    weights_path: models/pretrained/prithvi/Prithvi_EO_V2_300M.pt
+    num_classes: 2
+    adaptation: scope
+    lora_rank: 8
+    lora_alpha: 8
+    init_from: results/scope_v2/checkpoints/lora_r8_seed42_split_010pct.ckpt
+    share_frac: 0.0
+    gate_enabled: true
+    gate_is_random: true
+    gate_keep_ratio: 0.5
+    gate_train_mode: topk_st
+    keep_ratio_train: fixed
+    prior_mode: 'off'
+    exit_enabled: false
+    probe_loss_weight: 0.2
+    exit_confident_thresh_high: 0.95
+    exit_confident_thresh_low: 0.05
+    exit_context_k: 16
+    exit_overwrite: probe
+    nbr_refine: false
+loss:
+  ce_weight: 0.5
+  dice_weight: 0.5
+  class_weights:
+  - 1.0
+  - 8.0
+optimizer:
+  lr: 0.0002
+  lr_new: 0.0002
+  lr_lora: 5.0e-05
+  weight_decay: 0.01
+trainer:
+  max_epochs: 15
+  min_epochs: 8
+  patience: 8
+  checkpoint_dir: results/scope_v2/checkpoints/
+  precision: 16-mixed
+distill: true
+distill_T: 2.0
+distill_weight: 1.0
+feat_distill: 0.0

@@ -279,3 +279,133 @@ def test_7_early_exit():
         f"Expected exit rate {expected_exit_rate}, got {exit_rate}"
     )
 
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# SCOPE v2 tests
+# ──────────────────────────────────────────────────────────────────────────────
+
+class _MockBlock(nn.Module):
+    def __init__(self, d=64):
+        super().__init__()
+        self.norm1 = nn.LayerNorm(d)
+        self.attn = nn.Linear(d, d)
+        self.ls1 = nn.Identity()
+        self.drop_path1 = nn.Identity()
+        self.norm2 = nn.LayerNorm(d)
+        self.mlp = nn.Sequential(nn.Linear(d, 4 * d), nn.GELU(), nn.Linear(4 * d, d))
+        self.ls2 = nn.Identity()
+        self.drop_path2 = nn.Identity()
+
+
+def _topk_gate(keep=0.5):
+    torch.manual_seed(0)
+    return ScopeGateBlock(_MockBlock(64), embed_dim=64, train_mode="topk_st", keep_ratio_train="fixed")
+
+
+def test_v2_1_topk_st_hard_mask():
+    """v2 Test 1: train-mode topk_st masks are exactly 0/1 with exactly k tokens per block, and W_g gets gradient."""
+    gate = _topk_gate()
+    gate.train()
+    B, Np, keep = 3, 100, 0.5
+    x = torch.randn(B, 1 + Np, 64)  # CLS + patches
+    p = torch.randn(B, Np, 4)
+    out = gate(x, p, keep_ratio=keep)
+    m = gate.last_mask.squeeze(-1)
+    assert set(m.unique().tolist()) <= {0.0, 1.0}, f"fractional mask values: {m.unique()}"
+    k = int(math.ceil(keep * Np))
+    assert (m.sum(dim=1) == k).all(), f"expected {k} tokens per sample, got {m.sum(dim=1)}"
+    assert gate.last_mlp_tokens == 1 + k
+    assert gate.last_rate_loss is None
+    out.sum().backward()
+    assert gate.W_g.weight.grad is not None and gate.W_g.weight.grad.abs().sum() > 0
+
+
+def test_v2_2_train_eval_token_counts_match():
+    """v2 Test 2: train-mode and eval-mode MLP token counts per block are identical at the same keep ratio."""
+    gate = _topk_gate()
+    seen = []
+    hook = gate.block.mlp.register_forward_hook(lambda mod, inp, out: seen.append(inp[0].shape[1]))
+    x = torch.randn(2, 1 + 100, 64)
+    p = torch.randn(2, 100, 4)
+    for keep in (0.3, 0.5, 0.75):
+        gate.train()
+        gate(x, p, keep_ratio=keep)
+        train_count = gate.last_mlp_tokens
+        gate.eval()
+        with torch.no_grad():
+            gate(x, p, keep_ratio=keep)
+        assert train_count == gate.last_mlp_tokens == seen[-1], (keep, train_count, gate.last_mlp_tokens, seen[-1])
+    hook.remove()
+
+
+def _fake_lora_ckpt(tmp_path):
+    """A plain LoRA r=8 Lightning-style checkpoint with non-trivial LoRA and head weights."""
+    torch.manual_seed(1)
+    base = PrithviFCNSegmentor(weights_path=WEIGHTS_PATH, num_classes=2, adaptation="lora", lora_rank=8, lora_alpha=8)
+    with torch.no_grad():
+        for name, prm in base.named_parameters():
+            if "lora_" in name or name.startswith("decoder."):
+                prm.normal_(0, 0.02)
+        base.decoder.head[1].running_mean.normal_(0, 0.1)
+    path = tmp_path / "lora.ckpt"
+    torch.save({"state_dict": {f"model.{k}": v for k, v in base.state_dict().items()}}, path)
+    return base.eval(), str(path)
+
+
+def test_v2_3_warm_start_identity(tmp_path):
+    """v2 Test 3: SCOPE warm-started from a LoRA checkpoint (keep 1, share 0, exit off, refine off) == plain LoRA."""
+    base, ckpt = _fake_lora_ckpt(tmp_path)
+    scope = ScopePrithviFCNSegmentor(
+        weights_path=WEIGHTS_PATH, num_classes=2, share_frac=0.0, gate_enabled=True,
+        gate_train_mode="topk_st", keep_ratio_train="fixed", gate_keep_ratio=1.0,
+        exit_enabled=False, nbr_refine=False, prior_mode="off", init_from=ckpt,
+    ).eval()
+    x = torch.randn(1, 6, 512, 512)
+    with torch.no_grad():
+        diff = (base(x) - scope(x)).abs().max().item()
+    assert diff < 1e-4, f"warm-start output differs from plain LoRA by {diff}"
+
+
+def test_v2_4_teacher_frozen(tmp_path):
+    """v2 Test 4: the distillation teacher has no trainable parameters and receives no gradients."""
+    from src.training.module import SegmentationModule
+
+    _, ckpt = _fake_lora_ckpt(tmp_path)
+    cfg = {
+        "model": {"name": "prithvi_fcn_scope", "params": {
+            "weights_path": WEIGHTS_PATH, "num_classes": 2, "adaptation": "scope", "lora_rank": 8, "lora_alpha": 8,
+            "gate_enabled": True, "gate_train_mode": "topk_st", "keep_ratio_train": "fixed",
+            "gate_keep_ratio": 0.5, "prior_mode": "off", "init_from": ckpt}},
+        "loss": {"ce_weight": 0.5, "dice_weight": 0.5, "class_weights": [1.0, 8.0]},
+        "optimizer": {"lr": 2e-4, "lr_new": 2e-4, "lr_lora": 5e-5, "weight_decay": 1e-2},
+        "trainer": {"max_epochs": 2},
+        "distill": True, "distill_T": 2.0, "distill_weight": 1.0,
+    }
+    module = SegmentationModule(cfg)
+    module.log = lambda *a, **k: None
+    module.train()
+    assert not module.teacher.training, "teacher must stay in eval mode"
+    assert sum(p.numel() for p in module.teacher.parameters() if p.requires_grad) == 0
+    imgs = torch.randn(1, 6, 512, 512)
+    masks = torch.randint(0, 2, (1, 512, 512))
+    loss = module._shared_step((imgs, masks), "train")
+    loss.backward()
+    assert all(p.grad is None for p in module.teacher.parameters()), "teacher received gradients"
+    assert any(p.grad is not None for p in module.model.parameters() if p.requires_grad)
+    # teacher weights are not stored in checkpoints
+    ck = {"state_dict": module.state_dict()}
+    module.on_save_checkpoint(ck)
+    assert not any(k.startswith("teacher.") for k in ck["state_dict"])
+
+
+def test_v2_5_flop_counters_agree():
+    """v2 Test 5: measured and analytical encoder FLOPs agree within 5% (SCOPE off), FLOPs = 2 x MACs."""
+    from src.utils.flops import measure_encoder_gflops, encoder_gflops
+
+    analytical = encoder_gflops([1025] * 24, [1025] * 24)
+    base = PrithviFCNSegmentor(weights_path=WEIGHTS_PATH, num_classes=2, adaptation="lora")
+    scope = ScopePrithviFCNSegmentor(weights_path=WEIGHTS_PATH, num_classes=2)
+    for model in (base, scope):
+        measured = measure_encoder_gflops(model)
+        assert abs(measured - analytical) / analytical < 0.05, (type(model).__name__, measured, analytical)

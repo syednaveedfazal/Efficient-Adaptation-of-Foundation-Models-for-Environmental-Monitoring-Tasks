@@ -16,6 +16,7 @@ Usage:
 """
 
 import argparse
+import re
 import sys
 import yaml
 import json
@@ -32,6 +33,11 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from src.datasets.registry import build_datamodule
 from src.training.module import build_module
+
+
+def _epoch_from_ckpt_name(path):
+    m = re.search(r"epoch=(\d+)", path or "")
+    return int(m.group(1)) if m else None
 
 
 def main():
@@ -167,6 +173,7 @@ def main():
     # ------------------------------------------------------------------
     trainer = pl.Trainer(
         max_epochs        = args.max_epochs if args.max_epochs is not None else cfg["trainer"]["max_epochs"],
+        min_epochs        = cfg["trainer"].get("min_epochs"),
         accelerator       = "auto",
         devices           = "auto",
         callbacks         = callbacks,
@@ -206,8 +213,9 @@ def main():
         # Clean prefix from keys for cleaner json (e.g. 'val/loss' -> 'loss')
         clean_metrics = {k.replace("val/", ""): float(v) for k, v in res.items()}
         
-        total_params = sum(p.numel() for p in model.parameters())
-        trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        # model.model: excludes a frozen distillation teacher, if any
+        total_params = sum(p.numel() for p in model.model.parameters())
+        trainable_params = sum(p.numel() for p in model.model.parameters() if p.requires_grad)
         
         if args.split_json:
             try:
@@ -262,7 +270,14 @@ def main():
                 "total_gflops": round(fwd_gflops + bwd_gflops, 4)
             },
             "metrics": clean_metrics,
-            "hardware": gpu_stats
+            "hardware": gpu_stats,
+            "training": {
+                "best_ckpt": best_ckpt,
+                "epochs_run": int(trainer.current_epoch),
+                "best_epoch": _epoch_from_ckpt_name(best_ckpt),
+                "early_stopped": bool(trainer.early_stopping_callback.stopped_epoch > 0)
+                                 if trainer.early_stopping_callback is not None else False,
+            },
         }
 
         # Add SCOPE-specific accounting if present
@@ -286,7 +301,8 @@ def main():
             export_data["experiment"]["scope"] = {
                 k: model_params[k] for k in (
                     "share_frac", "gate_enabled", "gate_is_random", "gate_keep_ratio",
-                    "exit_enabled", "nbr_refine", "self_distill"
+                    "exit_enabled", "nbr_refine", "self_distill", "gate_train_mode",
+                    "keep_ratio_train", "prior_mode", "exit_overwrite", "init_from"
                 ) if k in model_params
             }
         

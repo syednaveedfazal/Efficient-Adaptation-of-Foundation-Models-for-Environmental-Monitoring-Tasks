@@ -347,6 +347,30 @@ def gumbel_sigmoid(logits: torch.Tensor, tau: float = 5.0, hard: bool = True) ->
     return y
 
 
+def topk_straight_through(logits: torch.Tensor, k: int, noise: bool = True) -> torch.Tensor:
+    """
+    Hard top-k mask with a straight-through sigmoid gradient (gate_train_mode: topk_st).
+
+    Selects exactly k tokens per sample by top-k on logits + Gumbel noise (float32).
+    Forward value is the exact 0/1 mask; the backward pass uses sigmoid(logits).
+
+    Args:
+        logits: (B, Np, 1) gate logits.
+        k: tokens to keep per sample.
+    """
+    dtype = logits.dtype
+    logits_f32 = logits.float()
+    scores = logits_f32.detach().squeeze(-1)
+    if noise:
+        u = torch.rand_like(scores).clamp(min=1e-7, max=1.0 - 1e-7)
+        scores = scores - torch.log(-torch.log(u))
+    idx = torch.topk(scores, k, dim=-1, largest=True)[1]
+    hard = torch.zeros_like(scores).scatter_(1, idx, 1.0).unsqueeze(-1)
+    soft = torch.sigmoid(logits_f32)
+    # hard + (soft - soft) keeps the forward value exactly 0/1
+    return (hard + (soft - soft.detach())).to(dtype)
+
+
 class ScopeGateBlock(nn.Module):
     """
     Wraps a transformer block with a DyT-style MLP routing gate.
@@ -362,6 +386,8 @@ class ScopeGateBlock(nn.Module):
         zero_prior: bool = False,
         is_random: bool = False,
         tau: float = 5.0,
+        train_mode: str = "gumbel",
+        keep_ratio_train: str = "uniform",
     ):
         super().__init__()
         self.block = block
@@ -369,6 +395,11 @@ class ScopeGateBlock(nn.Module):
         self.a_scale = a_scale
         self.is_random = is_random
         self.tau = tau
+        # "gumbel" (v1): Gumbel-Sigmoid + rate loss; "topk_st": exact top-k hard mask, ST gradient
+        self.train_mode = train_mode
+        # "uniform" (v1): keep ratio ~ U(0.3, 1.0) per step; "fixed": the configured keep_ratio
+        self.keep_ratio_train = keep_ratio_train
+        self.last_mask: Optional[torch.Tensor] = None
 
         # W_g: Linear(1024 -> 1)
         self.W_g = nn.Linear(embed_dim, 1)
@@ -433,8 +464,28 @@ class ScopeGateBlock(nn.Module):
             gate_logits = self.W_g(x_patches) + self.a_scale * p_proj  # (B, Np, 1)
 
         # 3. Training dispatch vs. Evaluation top-k routing
-        if self.training:
+        if self.training and self.train_mode == "topk_st":
+            if self.keep_ratio_train == "uniform":
+                keep_ratio = float(torch.empty(1).uniform_(0.3, 1.0).item())
+            k = max(1, min(int(math.ceil(keep_ratio * Np)), Np))
+            m_patches = topk_straight_through(gate_logits, k, noise=not self.is_random)  # (B, Np, 1)
+
+            if has_cls:
+                m_cls = torch.ones(B, 1, 1, device=x.device, dtype=m_patches.dtype)
+                m = torch.cat([m_cls, m_patches], dim=1)  # (B, N, 1)
+            else:
+                m = m_patches
+            self.last_mask = m_patches.detach()
+
+            # MLP on all tokens, masked: unselected tokens still give the gate a ST gradient
+            mlp_out = self.block.drop_path2(self.block.ls2(self.block.mlp(self.block.norm2(x))))
+            x = x + m.to(mlp_out.dtype) * mlp_out
+            self.last_mlp_tokens = (1 if has_cls else 0) + k
+            self.last_rate_loss = None
+
+        elif self.training:
             m_patches = gumbel_sigmoid(gate_logits, tau=self.tau, hard=True)  # (B, Np, 1)
+            self.last_mask = m_patches.detach()
 
             if has_cls:
                 m_cls = torch.ones(B, 1, 1, device=x.device, dtype=x.dtype)
@@ -565,15 +616,21 @@ class ScopePrithviFCNSegmentor(nn.Module):
         gate_keep_ratio: float = 1.0,
         rate_loss_weight: float = 2.0,
         tau: float = 5.0,
+        gate_train_mode: str = "gumbel",
+        keep_ratio_train: str = "uniform",
+        prior_mode: Optional[str] = None,
         # Stage 3: Early exit
         exit_enabled: bool = False,
         probe_loss_weight: float = 0.2,
         exit_confident_thresh_high: float = 0.95,
         exit_confident_thresh_low: float = 0.05,
         exit_context_k: int = 16,
+        exit_overwrite: str = "probe",
         # Extras
         nbr_refine: bool = False,
         self_distill: bool = False,
+        # Two-stage training: warm start from a trained plain LoRA r=8 Lightning checkpoint
+        init_from: Optional[str] = None,
     ):
         super().__init__()
         self.num_classes = num_classes
@@ -592,7 +649,17 @@ class ScopePrithviFCNSegmentor(nn.Module):
         self.probe_loss_weight = probe_loss_weight
         self.exit_thresh_high = exit_confident_thresh_high
         self.exit_thresh_low = exit_confident_thresh_low
+        # Optional per-probe symmetric thresholds {7: t8, 15: t16}, calibrated on validation
+        self.exit_thresh_per_probe: Optional[Dict[int, float]] = None
         self.exit_context_k = exit_context_k
+        # "probe" (v1): exited patches take the probe logits; "decoder": the decoder predicts them
+        self.exit_overwrite = exit_overwrite
+        # Diagnostics: when set, probe logits for all tokens are stored in last_probe_logits
+        self.record_probes = False
+        self.last_probe_logits: Dict[int, torch.Tensor] = {}
+        self.last_spatial_features: Optional[torch.Tensor] = None
+        self.last_share_info: dict = {"is_shared": False}
+        self.last_exited_probe_logits: Dict[int, torch.Tensor] = {}
 
         self.nbr_refine = nbr_refine
         self.self_distill = self_distill
@@ -636,6 +703,14 @@ class ScopePrithviFCNSegmentor(nn.Module):
         for name, param in self.encoder.named_parameters():
             param.requires_grad = "lora_" in name
 
+        # prior_mode overrides the v1 flags: off -> no prior term, frozen -> fixed w_p, learned -> trainable w_p
+        if prior_mode is not None:
+            if prior_mode not in ("off", "learned", "frozen"):
+                raise ValueError(f"Unknown prior_mode '{prior_mode}'")
+            gate_zero_prior = prior_mode == "off"
+            gate_prior_frozen = prior_mode != "learned"
+        self.prior_mode = prior_mode
+
         # 4. Wrap transformer blocks with Stage 2 Gate Blocks
         self.blocks = nn.ModuleList()
         for b in self.encoder.blocks:
@@ -648,6 +723,8 @@ class ScopePrithviFCNSegmentor(nn.Module):
                     zero_prior=gate_zero_prior,
                     is_random=gate_is_random,
                     tau=tau,
+                    train_mode=gate_train_mode,
+                    keep_ratio_train=keep_ratio_train,
                 )
                 self.blocks.append(g_block)
             else:
@@ -678,12 +755,37 @@ class ScopePrithviFCNSegmentor(nn.Module):
         # 8. FCN Decoder
         self.decoder = PrithviFCNDecoder(in_channels=1024, num_classes=num_classes)
 
+        if init_from:
+            self.load_warm_start(init_from)
+
         # Runtime trackers
         self.last_aux_loss = torch.tensor(0.0)
         self.last_tokens_attn: List[int] = []
         self.last_tokens_mlp: List[int] = []
         self.last_exit_rate: float = 0.0
         self._current_targets: Optional[torch.Tensor] = None
+
+    def load_warm_start(self, ckpt_path: str):
+        """Loads encoder, LoRA and FCN head weights from a plain-LoRA Lightning checkpoint."""
+        ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+        sd = ckpt.get("state_dict", ckpt)
+        sd = {k[len("model."):] if k.startswith("model.") else k: v for k, v in sd.items()}
+        sd = {k: v for k, v in sd.items() if k.startswith(("encoder.", "decoder."))}
+        missing, unexpected = self.load_state_dict(sd, strict=False)
+        missing_base = [k for k in missing if k.startswith(("encoder.", "decoder.")) and "pos_embed" not in k]
+        if missing_base or unexpected:
+            raise RuntimeError(f"Warm start mismatch: missing {missing_base[:5]}, unexpected {unexpected[:5]}")
+        print(f"[SCOPE] Warm start loaded {len(sd)} tensors from {ckpt_path}")
+
+    def param_groups(self, lr_new: float, lr_lora: float) -> List[dict]:
+        """New SCOPE parts (gates, probes, nbr_refine) at lr_new; LoRA and FCN head at lr_lora."""
+        new, base, seen = [], [], set()
+        for name, prm in self.named_parameters():
+            if not prm.requires_grad or id(prm) in seen:
+                continue
+            seen.add(id(prm))
+            (base if name.startswith(("encoder.", "decoder.")) or ".block." in name else new).append(prm)
+        return [{"params": new, "lr": lr_new, "name": "new"}, {"params": base, "lr": lr_lora, "name": "lora_head"}]
 
     def _load_statistics(self, stats_path: str, prior_stats_path: str):
         sp = Path(stats_path)
@@ -712,8 +814,14 @@ class ScopePrithviFCNSegmentor(nn.Module):
         keep_ratio: Optional[float] = None,
         share_frac: Optional[float] = None,
         exit_enabled: Optional[bool] = None,
+        exit_overwrite: Optional[str] = None,
+        exit_thresh_per_probe: Optional[Dict[int, float]] = None,
     ):
         """Allows dynamically overriding evaluation hyperparameters during inference sweeps."""
+        if exit_overwrite is not None:
+            self.exit_overwrite = exit_overwrite
+        if exit_thresh_per_probe is not None:
+            self.exit_thresh_per_probe = exit_thresh_per_probe
         if keep_ratio is not None:
             self.gate_keep_ratio = keep_ratio
         if share_frac is not None:
@@ -835,6 +943,10 @@ class ScopePrithviFCNSegmentor(nn.Module):
                 attn_token_counts.append(tokens.shape[1])
                 mlp_token_counts.append(tokens.shape[1])
 
+            if self.record_probes and self.probe8 is not None and b_idx in (7, 15):
+                probe = self.probe8 if b_idx == 7 else self.probe16
+                self.last_probe_logits[b_idx] = probe(tokens[:, 1:, :]).detach()
+
             # Stage 3 Probes after block 8 and block 16 (0-indexed 7 and 15)
             if self.exit_enabled and b_idx in (7, 15):
                 probe = self.probe8 if b_idx == 7 else self.probe16
@@ -880,7 +992,11 @@ class ScopePrithviFCNSegmentor(nn.Module):
                     p_burn = probs[:, :, 1]
                     p_unburn = probs[:, :, 0]
 
-                    confident = (p_burn >= self.exit_thresh_high) | (p_burn <= self.exit_thresh_low)
+                    if self.exit_thresh_per_probe is not None:
+                        t = self.exit_thresh_per_probe[b_idx]
+                        confident = (p_burn >= t) | (p_burn <= 1.0 - t)
+                    else:
+                        confident = (p_burn >= self.exit_thresh_high) | (p_burn <= self.exit_thresh_low)
 
                     k_ctx = min(self.exit_context_k, p_burn.shape[1] // 2)
                     _, top_burn_idx = torch.topk(p_burn, k_ctx, dim=1, largest=True)
@@ -925,11 +1041,15 @@ class ScopePrithviFCNSegmentor(nn.Module):
         # Reshape to (B, 1024, 32, 32)
         spatial_features = full_patch_features.view(B, 32, 32, 1024).permute(0, 3, 1, 2).contiguous()
 
+        self.last_spatial_features = spatial_features
+        self.last_share_info = share_info
+        self.last_exited_probe_logits = exited_probe_logits
+
         # 7. Decode with FCN head
         logits = self.decoder(spatial_features)  # (B, 2, 512, 512)
 
         # Overwrite exited tokens' pixels with probe logits
-        if exited_probe_logits:
+        if exited_probe_logits and self.exit_overwrite == "probe":
             gp = self.sharing_module.group_patches.to(device)
             if share_info.get("is_shared", False):
                 g = share_info["g"]
