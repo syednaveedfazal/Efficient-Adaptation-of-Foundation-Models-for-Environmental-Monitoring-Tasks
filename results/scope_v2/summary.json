@@ -1,0 +1,29 @@
+{
+  "lora_burn_iou": 0.6792,
+  "lora_gflops": 732.03,
+  "rand50": {
+    "burn_iou": 0.5643,
+    "pct": 71.6
+  },
+  "best_le60": {
+    "run": "combo_strong",
+    "keep": 1.0,
+    "share": 0.5,
+    "burn_iou": 0.6712,
+    "pct": 56.9,
+    "gap_to_lora": 0.008,
+    "margin_over_rand50": 0.1069,
+    "rand50_flops_matched_or_higher": true
+  },
+  "go": true,
+  "iou_loss_per_pct_flops_saved": {
+    "rand50": 0.00405,
+    "share25": 0.00024,
+    "share50": 0.00054,
+    "gate50": 0.00493,
+    "gate50_prior": 0.00367,
+    "exit": 0.00064,
+    "combo_mild": 0.0018,
+    "combo_strong": 0.00236
+  }
+}

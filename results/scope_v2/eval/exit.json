@@ -1,0 +1,248 @@
+{
+  "config": "configs/scope_v2/exit.yaml",
+  "ckpt": "/home/s07akhan/EAFM/results/scope_v2/checkpoints/prithvi_scope_exit_seed_42_split_010pct/epoch=01-val/burn_iou=0.6669.ckpt",
+  "lora_encoder_gflops": 732.0299,
+  "evals": [
+    {
+      "keep": 1.0,
+      "share": 0.0,
+      "exit": true,
+      "exit_overwrite": "probe",
+      "metrics": {
+        "mean_iou": 0.8128,
+        "burn_iou": 0.6618,
+        "bg_iou": 0.9638,
+        "burn_precision": 0.8234,
+        "burn_recall": 0.7778,
+        "burn_dice": 0.781,
+        "pixel_accuracy": 0.9675
+      },
+      "encoder_gflops": 531.16,
+      "pct_lora_flops": 72.6,
+      "attn_tokens_per_block": [
+        1025.0,
+        1025.0,
+        1025.0,
+        1025.0,
+        1025.0,
+        1025.0,
+        1025.0,
+        1025.0,
+        897.6,
+        897.6,
+        897.6,
+        897.6,
+        897.6,
+        897.6,
+        897.6,
+        897.6,
+        349.0,
+        349.0,
+        349.0,
+        349.0,
+        349.0,
+        349.0,
+        349.0,
+        349.0
+      ],
+      "mlp_tokens_per_block": [
+        1025.0,
+        1025.0,
+        1025.0,
+        1025.0,
+        1025.0,
+        1025.0,
+        1025.0,
+        1025.0,
+        897.6,
+        897.6,
+        897.6,
+        897.6,
+        897.6,
+        897.6,
+        897.6,
+        897.6,
+        349.0,
+        349.0,
+        349.0,
+        349.0,
+        349.0,
+        349.0,
+        349.0,
+        349.0
+      ],
+      "attn_tokens_mean": 757.2,
+      "mlp_tokens_mean": 757.2,
+      "exit_rate": 0.6601,
+      "exited_patch_pixel_acc": 0.985,
+      "decoder_only_burn_iou": 0.688,
+      "decoder_only_gflops": 732.03,
+      "probe8_burn_iou": 0.2942,
+      "probe16_burn_iou": 0.5013,
+      "combined_overwrite_decoder_burn_iou": 0.6365,
+      "is_own_setting": true
+    }
+  ],
+  "exit_calibration": {
+    "7": {
+      "threshold": 0.96,
+      "table": [
+        {
+          "t": 0.5,
+          "frac_tokens": 1.0,
+          "acc": 0.9173
+        },
+        {
+          "t": 0.6,
+          "frac_tokens": 0.9654,
+          "acc": 0.9304
+        },
+        {
+          "t": 0.7,
+          "frac_tokens": 0.9239,
+          "acc": 0.9423
+        },
+        {
+          "t": 0.8,
+          "frac_tokens": 0.8632,
+          "acc": 0.9547
+        },
+        {
+          "t": 0.85,
+          "frac_tokens": 0.8151,
+          "acc": 0.9614
+        },
+        {
+          "t": 0.9,
+          "frac_tokens": 0.7381,
+          "acc": 0.9702
+        },
+        {
+          "t": 0.925,
+          "frac_tokens": 0.6791,
+          "acc": 0.9749
+        },
+        {
+          "t": 0.95,
+          "frac_tokens": 0.5877,
+          "acc": 0.9791
+        },
+        {
+          "t": 0.96,
+          "frac_tokens": 0.536,
+          "acc": 0.9812
+        },
+        {
+          "t": 0.97,
+          "frac_tokens": 0.4663,
+          "acc": 0.9835
+        },
+        {
+          "t": 0.98,
+          "frac_tokens": 0.3717,
+          "acc": 0.9857
+        },
+        {
+          "t": 0.99,
+          "frac_tokens": 0.2305,
+          "acc": 0.9882
+        },
+        {
+          "t": 0.995,
+          "frac_tokens": 0.1275,
+          "acc": 0.9887
+        },
+        {
+          "t": 0.999,
+          "frac_tokens": 0.021,
+          "acc": 0.9816
+        },
+        {
+          "t": 0.9999,
+          "frac_tokens": 0.0016,
+          "acc": 0.8737
+        }
+      ]
+    },
+    "15": {
+      "threshold": 0.925,
+      "table": [
+        {
+          "t": 0.5,
+          "frac_tokens": 1.0,
+          "acc": 0.9575
+        },
+        {
+          "t": 0.6,
+          "frac_tokens": 0.9902,
+          "acc": 0.9618
+        },
+        {
+          "t": 0.7,
+          "frac_tokens": 0.9789,
+          "acc": 0.9661
+        },
+        {
+          "t": 0.8,
+          "frac_tokens": 0.9628,
+          "acc": 0.9713
+        },
+        {
+          "t": 0.85,
+          "frac_tokens": 0.9501,
+          "acc": 0.9744
+        },
+        {
+          "t": 0.9,
+          "frac_tokens": 0.9284,
+          "acc": 0.9784
+        },
+        {
+          "t": 0.925,
+          "frac_tokens": 0.9076,
+          "acc": 0.9809
+        },
+        {
+          "t": 0.95,
+          "frac_tokens": 0.8678,
+          "acc": 0.984
+        },
+        {
+          "t": 0.96,
+          "frac_tokens": 0.8386,
+          "acc": 0.9855
+        },
+        {
+          "t": 0.97,
+          "frac_tokens": 0.7918,
+          "acc": 0.9874
+        },
+        {
+          "t": 0.98,
+          "frac_tokens": 0.7075,
+          "acc": 0.9897
+        },
+        {
+          "t": 0.99,
+          "frac_tokens": 0.5187,
+          "acc": 0.9925
+        },
+        {
+          "t": 0.995,
+          "frac_tokens": 0.3173,
+          "acc": 0.994
+        },
+        {
+          "t": 0.999,
+          "frac_tokens": 0.044,
+          "acc": 0.9934
+        },
+        {
+          "t": 0.9999,
+          "frac_tokens": 0.0007,
+          "acc": 0.9
+        }
+      ]
+    }
+  }
+}

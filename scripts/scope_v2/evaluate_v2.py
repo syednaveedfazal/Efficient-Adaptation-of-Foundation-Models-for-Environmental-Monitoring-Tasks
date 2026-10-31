@@ -157,21 +157,20 @@ def run_eval(model, loader, device, scope, keep=None, share=None, exit_on=None, 
     return out
 
 
-def calibrate(calib: dict) -> dict:
-    """Most aggressive (lowest) threshold t such that probe accuracy on tokens with conf >= t' is >= 98% for all t' >= t."""
+def calibrate(calib: dict, min_tokens: int = 100) -> dict:
+    """Most aggressive (lowest) threshold t whose confident tokens (conf >= t, at least min_tokens) have >= 98%
+    probe pixel accuracy. 1.01 (never exit) if no threshold qualifies."""
     res = {}
     for idx, data in calib.items():
         conf, correct = data[:, 0], data[:, 1]
         chosen, table = None, []
-        for t in reversed(THRESH_GRID):
+        for t in THRESH_GRID:
             sel = conf >= t
             n = int(sel.sum())
             acc = float(correct[sel].mean()) if n else 1.0
             table.append({"t": t, "frac_tokens": round(n / len(conf), 4), "acc": round(acc, 4)})
-            if acc >= TARGET_ACC:
+            if chosen is None and n >= min_tokens and acc >= TARGET_ACC:
                 chosen = t
-            else:
-                break
         res[idx] = {"threshold": chosen if chosen is not None else 1.01, "table": table}
     return res
 

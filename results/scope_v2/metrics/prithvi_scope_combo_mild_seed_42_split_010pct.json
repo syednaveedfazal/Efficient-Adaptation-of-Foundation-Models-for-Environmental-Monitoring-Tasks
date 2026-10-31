@@ -1,0 +1,54 @@
+{
+  "experiment": {
+    "model_name": "prithvi_scope_combo_mild",
+    "config": "configs/scope_v2/combo_mild.yaml",
+    "split_json": "data/splits/seed_42/split_010pct.json",
+    "label_budget": 0.1,
+    "seed": 42,
+    "trainable_params": 5534846,
+    "total_params": 309421182,
+    "pct_trainable_params": 1.7888,
+    "fwd_gflops": 462.0502,
+    "bwd_gflops": 464.4693,
+    "total_gflops": 926.5195,
+    "scope": {
+      "share_frac": 0.25,
+      "gate_enabled": true,
+      "gate_is_random": false,
+      "gate_keep_ratio": 0.75,
+      "exit_enabled": true,
+      "nbr_refine": false,
+      "gate_train_mode": "topk_st",
+      "keep_ratio_train": "fixed",
+      "prior_mode": "learned",
+      "exit_overwrite": "probe",
+      "init_from": "results/scope_v2/checkpoints/lora_r8_seed42_split_010pct.ckpt"
+    }
+  },
+  "metrics": {
+    "loss": 0.28208985924720764,
+    "mean_iou": 0.7838808298110962,
+    "burn_iou": 0.6092417240142822,
+    "bg_iou": 0.9585198760032654,
+    "burn_precision": 0.7653130888938904,
+    "burn_recall": 0.749642550945282,
+    "burn_dice": 0.7354127168655396,
+    "pixel_accuracy": 0.9626748561859131,
+    "tokens_attn_mean": 790.33,
+    "tokens_mlp_mean": 593.33,
+    "exit_rate": 0.1274,
+    "encoder_gflops_inference": 459.6311
+  },
+  "hardware": {
+    "gpu_name": "NVIDIA A100-SXM4-80GB",
+    "max_memory_allocated_mb": 7018.96,
+    "max_memory_reserved_mb": 7252.0,
+    "training_duration_seconds": 299.35
+  },
+  "training": {
+    "best_ckpt": "/home/s07akhan/EAFM/results/scope_v2/checkpoints/prithvi_scope_combo_mild_seed_42_split_010pct/epoch=02-val/burn_iou=0.6092.ckpt",
+    "epochs_run": 11,
+    "best_epoch": 2,
+    "early_stopped": false
+  }
+}
