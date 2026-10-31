@@ -1,0 +1,314 @@
+{
+  "ckpt": "results/scope_smoke/checkpoints/prithvi_scope_s4_full_seed_42_split_010pct/epoch=28-val/burn_iou=0.5135.ckpt",
+  "gate_audit": {
+    "n_values": 245760,
+    "exact_0": 90571,
+    "exact_1": 155189,
+    "fractional": 0,
+    "fractional_abs_dev_from_nearest_int_max": 0.0,
+    "hist_10_bins_0_to_1": [
+      90571,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      155189
+    ],
+    "keep_rate_overall": 0.6315,
+    "keep_rate_per_block": [
+      0.638,
+      0.619,
+      0.642,
+      0.65,
+      0.598,
+      0.633,
+      0.687,
+      0.641,
+      0.554,
+      0.652,
+      0.721,
+      0.603,
+      0.666,
+      0.623,
+      0.591,
+      0.665,
+      0.598,
+      0.655,
+      0.584,
+      0.666,
+      0.592,
+      0.605,
+      0.651,
+      0.621
+    ]
+  },
+  "evals": {
+    "v1_repro_share0.5_keep0.5_exit": {
+      "keep": 0.5,
+      "share": 0.5,
+      "exit": true,
+      "refine": true,
+      "train_gate": false,
+      "metrics": {
+        "mean_iou": 0.7306,
+        "burn_iou": 0.5121,
+        "bg_iou": 0.9491,
+        "burn_precision": 0.7501,
+        "burn_recall": 0.628,
+        "burn_dice": 0.6501,
+        "pixel_accuracy": 0.9539
+      },
+      "attn_tokens_mean": 457.2,
+      "mlp_tokens_mean": 229.3,
+      "exit_rate": 0.5647
+    },
+    "decoder_only_keep1.0": {
+      "keep": 1.0,
+      "share": 0.0,
+      "exit": false,
+      "refine": true,
+      "train_gate": false,
+      "metrics": {
+        "mean_iou": 0.5754,
+        "burn_iou": 0.3346,
+        "bg_iou": 0.8162,
+        "burn_precision": 0.3421,
+        "burn_recall": 0.9704,
+        "burn_dice": 0.4657,
+        "pixel_accuracy": 0.8326
+      },
+      "attn_tokens_mean": 1025.0,
+      "mlp_tokens_mean": 1025.0,
+      "exit_rate": 0.0,
+      "probe8": {
+        "mean_iou": 0.5443,
+        "burn_iou": 0.2968,
+        "bg_iou": 0.7919,
+        "burn_precision": 0.3154,
+        "burn_recall": 0.8883,
+        "burn_dice": 0.4274,
+        "pixel_accuracy": 0.8114
+      },
+      "probe16": {
+        "mean_iou": 0.5532,
+        "burn_iou": 0.3106,
+        "bg_iou": 0.7958,
+        "burn_precision": 0.3305,
+        "burn_recall": 0.9173,
+        "burn_dice": 0.4367,
+        "pixel_accuracy": 0.8125
+      }
+    },
+    "combined_keep1.0": {
+      "keep": 1.0,
+      "share": 0.0,
+      "exit": true,
+      "refine": true,
+      "train_gate": false,
+      "metrics": {
+        "mean_iou": 0.5753,
+        "burn_iou": 0.3344,
+        "bg_iou": 0.8163,
+        "burn_precision": 0.3419,
+        "burn_recall": 0.9702,
+        "burn_dice": 0.4656,
+        "pixel_accuracy": 0.8327
+      },
+      "attn_tokens_mean": 1002.0,
+      "mlp_tokens_mean": 1002.0,
+      "exit_rate": 0.0414
+    },
+    "decoder_only_keep0.5": {
+      "keep": 0.5,
+      "share": 0.0,
+      "exit": false,
+      "refine": true,
+      "train_gate": false,
+      "metrics": {
+        "mean_iou": 0.7526,
+        "burn_iou": 0.5537,
+        "bg_iou": 0.9516,
+        "burn_precision": 0.7183,
+        "burn_recall": 0.7261,
+        "burn_dice": 0.6867,
+        "pixel_accuracy": 0.9564
+      },
+      "attn_tokens_mean": 1025.0,
+      "mlp_tokens_mean": 513.0,
+      "exit_rate": 0.0,
+      "probe8": {
+        "mean_iou": 0.7062,
+        "burn_iou": 0.4681,
+        "bg_iou": 0.9442,
+        "burn_precision": 0.6989,
+        "burn_recall": 0.5937,
+        "burn_dice": 0.6121,
+        "pixel_accuracy": 0.9491
+      },
+      "probe16": {
+        "mean_iou": 0.6591,
+        "burn_iou": 0.3811,
+        "bg_iou": 0.9371,
+        "burn_precision": 0.7579,
+        "burn_recall": 0.4325,
+        "burn_dice": 0.5194,
+        "pixel_accuracy": 0.9412
+      }
+    },
+    "combined_keep0.5": {
+      "keep": 0.5,
+      "share": 0.0,
+      "exit": true,
+      "refine": true,
+      "train_gate": false,
+      "metrics": {
+        "mean_iou": 0.7527,
+        "burn_iou": 0.5535,
+        "bg_iou": 0.9519,
+        "burn_precision": 0.7347,
+        "burn_recall": 0.7051,
+        "burn_dice": 0.6871,
+        "pixel_accuracy": 0.9567
+      },
+      "attn_tokens_mean": 690.4,
+      "mlp_tokens_mean": 345.9,
+      "exit_rate": 0.6387
+    },
+    "sanity_keep1_refine_off": {
+      "keep": 1.0,
+      "share": 0.0,
+      "exit": false,
+      "refine": false,
+      "train_gate": false,
+      "metrics": {
+        "mean_iou": 0.5621,
+        "burn_iou": 0.3222,
+        "bg_iou": 0.802,
+        "burn_precision": 0.329,
+        "burn_recall": 0.9731,
+        "burn_dice": 0.4508,
+        "pixel_accuracy": 0.8195
+      },
+      "attn_tokens_mean": 1025.0,
+      "mlp_tokens_mean": 1025.0,
+      "exit_rate": 0.0
+    },
+    "decoder_only_keep0.75": {
+      "keep": 0.75,
+      "share": 0.0,
+      "exit": false,
+      "refine": true,
+      "train_gate": false,
+      "metrics": {
+        "mean_iou": 0.7006,
+        "burn_iou": 0.4899,
+        "bg_iou": 0.9114,
+        "burn_precision": 0.5208,
+        "burn_recall": 0.9183,
+        "burn_dice": 0.6274,
+        "pixel_accuracy": 0.9192
+      },
+      "attn_tokens_mean": 1025.0,
+      "mlp_tokens_mean": 769.0,
+      "exit_rate": 0.0
+    },
+    "decoder_only_keep0.65": {
+      "keep": 0.65,
+      "share": 0.0,
+      "exit": false,
+      "refine": true,
+      "train_gate": false,
+      "metrics": {
+        "mean_iou": 0.7266,
+        "burn_iou": 0.5236,
+        "bg_iou": 0.9297,
+        "burn_precision": 0.5805,
+        "burn_recall": 0.8683,
+        "burn_dice": 0.6598,
+        "pixel_accuracy": 0.9361
+      },
+      "attn_tokens_mean": 1025.0,
+      "mlp_tokens_mean": 667.0,
+      "exit_rate": 0.0
+    },
+    "decoder_only_keep0.3": {
+      "keep": 0.3,
+      "share": 0.0,
+      "exit": false,
+      "refine": true,
+      "train_gate": false,
+      "metrics": {
+        "mean_iou": 0.6366,
+        "burn_iou": 0.3394,
+        "bg_iou": 0.9338,
+        "burn_precision": 0.8369,
+        "burn_recall": 0.3719,
+        "burn_dice": 0.4712,
+        "pixel_accuracy": 0.9371
+      },
+      "attn_tokens_mean": 1025.0,
+      "mlp_tokens_mean": 309.0,
+      "exit_rate": 0.0
+    },
+    "train_gate_decoder_only": {
+      "keep": 1.0,
+      "share": 0.0,
+      "exit": false,
+      "refine": true,
+      "train_gate": true,
+      "metrics": {
+        "mean_iou": 0.779,
+        "burn_iou": 0.5993,
+        "bg_iou": 0.9588,
+        "burn_precision": 0.7301,
+        "burn_recall": 0.7773,
+        "burn_dice": 0.731,
+        "pixel_accuracy": 0.9633
+      },
+      "attn_tokens_mean": 1025.0,
+      "mlp_tokens_mean": 624.7,
+      "exit_rate": 0.0
+    },
+    "sanity_keep1_refine_on": {
+      "keep": 1.0,
+      "share": 0.0,
+      "exit": false,
+      "refine": true,
+      "train_gate": false,
+      "metrics": {
+        "mean_iou": 0.5754,
+        "burn_iou": 0.3346,
+        "bg_iou": 0.8162,
+        "burn_precision": 0.3421,
+        "burn_recall": 0.9704,
+        "burn_dice": 0.4657,
+        "pixel_accuracy": 0.8326
+      },
+      "attn_tokens_mean": 1025.0,
+      "mlp_tokens_mean": 1025.0,
+      "exit_rate": 0.0,
+      "probe8": {
+        "mean_iou": 0.5443,
+        "burn_iou": 0.2968,
+        "bg_iou": 0.7919,
+        "burn_precision": 0.3154,
+        "burn_recall": 0.8883,
+        "burn_dice": 0.4274,
+        "pixel_accuracy": 0.8114
+      },
+      "probe16": {
+        "mean_iou": 0.5532,
+        "burn_iou": 0.3106,
+        "bg_iou": 0.7958,
+        "burn_precision": 0.3305,
+        "burn_recall": 0.9173,
+        "burn_dice": 0.4367,
+        "pixel_accuracy": 0.8125
+      }
+    }
+  }
+}
