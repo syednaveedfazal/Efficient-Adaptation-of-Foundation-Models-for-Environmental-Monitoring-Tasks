@@ -63,3 +63,4 @@ The Pareto frontier plot comparing Burn IoU versus Encoder Inference GFLOPs acro
 
 2. **Encoder Analytical FLOP Accounting:**
    - The environment lacked `fvcore`. Following the architectural specification, an analytical FLOP counter `count_encoder_flops(tokens_per_block, mlp_tokens_per_block, D=1024, mlp_ratio=4)` was implemented directly in `src/utils/flops.py` using the exact ViT formulation ($2ND(3D) + 4N^2D + 2ND^2$ for attention and $4 N_{\text{mlp}} D (4D)$ for MLP).
+
