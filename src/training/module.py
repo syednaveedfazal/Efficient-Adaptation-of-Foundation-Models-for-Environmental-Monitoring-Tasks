@@ -152,6 +152,14 @@ class SegmentationModule(pl.LightningModule):
                 optimizer, lambda e: 0.01 + 0.99 * 0.5 * (1 + math.cos(math.pi * min(e, T_max) / T_max))
             )
             return {"optimizer": optimizer, "lr_scheduler": scheduler}
+        if hasattr(self.model, "spaco_param_groups"):
+            # SpaCo-LoRA: same AdamW + cosine (to 1% of each group's lr) as LoRA; gammas at gamma_lr_mult x lr, no WD
+            optimizer = torch.optim.AdamW(self.model.spaco_param_groups(opt["lr"], opt["weight_decay"]))
+            T_max = self.cfg["trainer"]["max_epochs"]
+            scheduler = torch.optim.lr_scheduler.LambdaLR(
+                optimizer, lambda e: 0.01 + 0.99 * 0.5 * (1 + math.cos(math.pi * min(e, T_max) / T_max))
+            )
+            return {"optimizer": optimizer, "lr_scheduler": scheduler}
         optimizer = torch.optim.AdamW(
             self.parameters(),
             lr           = opt["lr"],

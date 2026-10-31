@@ -35,6 +35,14 @@ from src.datasets.registry import build_datamodule
 from src.training.module import build_module
 
 
+def _git_commit():
+    try:
+        import subprocess
+        return subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    except Exception:
+        return None
+
+
 def _epoch_from_ckpt_name(path):
     m = re.search(r"epoch=(\d+)", path or "")
     return int(m.group(1)) if m else None
@@ -73,6 +81,9 @@ def main():
     parser.add_argument("--ckpt_dir",
                         default=None,
                         help="Override checkpoint directory from config")
+    parser.add_argument("--run_name",
+                        default=None,
+                        help="Override the derived run name (checkpoint dir, log dir, metrics file)")
     parser.add_argument("--delete_ckpt",
                         action="store_true",
                         help="Delete checkpoints folder after training to conserve space")
@@ -107,7 +118,9 @@ def main():
     if model_name == "prithvi_fcn_scope":
         model_name = f"prithvi_scope_{Path(args.config).stem}"
 
-    if args.split_json:
+    if args.run_name:
+        run_name = args.run_name
+    elif args.split_json:
         p = Path(args.split_json)
         run_name = f"{model_name}_{p.parent.name}_{p.stem}"   # e.g. unet_scratch_seed_42_split_010pct
     else:
@@ -277,8 +290,14 @@ def main():
                 "best_epoch": _epoch_from_ckpt_name(best_ckpt),
                 "early_stopped": bool(trainer.early_stopping_callback.stopped_epoch > 0)
                                  if trainer.early_stopping_callback is not None else False,
+                "train_seed": cfg["seed"],
+                "val_json": cfg["data"].get("val_json"),
+                "git_commit": _git_commit(),
+                "config_resolved": cfg,
             },
         }
+        if hasattr(model.model, "gammas"):
+            export_data["training"]["spaco_gamma"] = model.model.gammas()
 
         # Add SCOPE-specific accounting if present
         if hasattr(model.model, "get_token_counts"):

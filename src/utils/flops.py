@@ -176,3 +176,35 @@ def get_model_training_gflops(model, adaptation_strategy: str, input_size=(1, 6,
         bwd_gflops = 2.0 * fwd_total
 
     return round(float(fwd_total), 4), round(float(bwd_gflops), 4)
+
+
+def spaco_extra_gflops(
+    k: int,
+    basis: str = "cov",
+    mode: str = "static",
+    n_patches: int = 1024,
+    D: int = 1024,
+    mlp_ratio: float = 4.0,
+    depth: int = 24,
+    oversample: int = 8,
+    niter: int = 2,
+    lora_rank: int = 8,
+) -> float:
+    """
+    Extra encoder forward GFLOPs of SpaCo-LoRA over LoRA (2 x MACs, one 512x512 image), same convention as encoder_gflops.
+      randomized SVD (cov only): 2 * (2 * niter + 2) * N * D * q per SVD, q = k + oversample;
+                                 one SVD per image (static) or per block (dynamic)
+      projection P (A X)~ = U (U^T (A X)~) (cov, random): 4 * N * k * r per adapted layer (4 per block);
+                                 SpaCoLoRALinear projects after A, which is exact because P and A commute
+    The box control (3x3 average pool) and the random QR have no matmuls and are not counted.
+    """
+    if basis == "none":
+        return 0.0
+    flops = 0.0
+    if basis == "cov":
+        q = k + oversample
+        n_svd = depth if mode == "dynamic" else 1
+        flops += n_svd * 2.0 * (2 * niter + 2) * n_patches * D * q
+    if basis in ("cov", "random"):
+        flops += depth * 4 * 4.0 * n_patches * k * lora_rank
+    return round(flops / 1e9, 4)

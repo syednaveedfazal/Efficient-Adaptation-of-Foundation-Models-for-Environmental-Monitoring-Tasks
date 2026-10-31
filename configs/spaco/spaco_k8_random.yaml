@@ -1,0 +1,40 @@
+# SpaCo-LoRA study. Copy of configs/prithvi_fcn_lora_r8.yaml (same recipe); only the adapter changes.
+# Validation (early stopping, checkpoint choice) uses the dev half of the val scenes only.
+seed: 42
+use_wandb: false
+wandb_project: burn-scar
+data:
+  raw_dir: data/raw/hls_burn_scars
+  stats_path: data/processed/stats.json
+  val_json: splits/val_dev.json
+  batch_size: 4
+  num_workers: 4
+model:
+  name: prithvi_fcn_spaco
+  params:
+    weights_path: models/pretrained/prithvi/Prithvi_EO_V2_300M.pt
+    num_classes: 2
+    adaptation: spaco_lora
+    lora_rank: 8
+    lora_alpha: 8
+    lora_dropout: 0.0
+    spaco:
+      k: 8
+      basis: random
+      mode: static
+      gamma_scope: block
+      gamma_lr_mult: 10
+loss:
+  ce_weight: 0.5
+  dice_weight: 0.5
+  class_weights:
+  - 1.0
+  - 8.0
+optimizer:
+  lr: 0.0002
+  weight_decay: 0.01
+trainer:
+  max_epochs: 100
+  patience: 15
+  checkpoint_dir: results/spaco/checkpoints/
+  precision: 16-mixed
